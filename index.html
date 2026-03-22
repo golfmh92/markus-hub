@@ -651,7 +651,9 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 // ── Supabase Init ──
 const SUPA_URL = '__SUPA_URL__';
 const SUPA_KEY = '__SUPA_KEY__';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
+  auth: { flowType: 'implicit', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+});
 
 // ── State ──
 let currentUser = null;
