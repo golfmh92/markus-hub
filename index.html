@@ -777,22 +777,29 @@ async function loadAll() {
 }
 
 async function loadTasks() {
-  const { data } = await sb.from('hub_tasks').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('hub_tasks').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (error) console.error('[loadTasks]', error);
+  console.log('[loadTasks]', data?.length, 'tasks loaded');
   tasks = data || [];
 }
 
 async function loadProjects() {
-  const { data } = await sb.from('hub_projects').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('hub_projects').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (error) console.error('[loadProjects]', error);
+  console.log('[loadProjects]', data?.length, 'projects loaded');
   projects = data || [];
 }
 
 async function loadEntries(projectId) {
-  const { data } = await sb.from('hub_entries').select('*').eq('project_id', projectId).order('entry_date', { ascending: false });
+  const { data, error } = await sb.from('hub_entries').select('*').eq('project_id', projectId).order('entry_date', { ascending: false });
+  if (error) console.error('[loadEntries]', error);
   entries = data || [];
 }
 
 async function loadNotes() {
-  const { data } = await sb.from('hub_notes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('hub_notes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (error) console.error('[loadNotes]', error);
+  console.log('[loadNotes]', data?.length, 'notes loaded');
   notes = data || [];
 }
 
