@@ -771,7 +771,9 @@ async function logout() {
 }
 
 // ── Session ──
-sb.auth.onAuthStateChange(async (event, session) => {
+async function initSession() {
+  // First check for existing session
+  const { data: { session } } = await sb.auth.getSession();
   if (session?.user) {
     currentUser = session.user;
     $('auth-screen').classList.add('hidden');
@@ -780,12 +782,28 @@ sb.auth.onAuthStateChange(async (event, session) => {
     if (sidebarEmail) sidebarEmail.textContent = session.user.email;
     await loadCategories();
     await loadAll();
-  } else {
-    currentUser = null;
-    $('auth-screen').classList.remove('hidden');
-    $('app').style.display = 'none';
   }
-});
+
+  // Then listen for changes (login, logout, token refresh)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (!currentUser && session?.user) {
+        currentUser = session.user;
+        $('auth-screen').classList.add('hidden');
+        $('app').style.display = 'flex';
+        const sidebarEmail = $('sidebar-email');
+        if (sidebarEmail) sidebarEmail.textContent = session.user.email;
+        await loadCategories();
+        await loadAll();
+      }
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      $('auth-screen').classList.remove('hidden');
+      $('app').style.display = 'none';
+    }
+  });
+}
+initSession();
 
 // ── Data Loading ──
 async function loadAll() {
