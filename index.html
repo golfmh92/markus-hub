@@ -230,10 +230,73 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .anim-in{animation:fadeUp .3s ease both}
 
-/* ===================== Desktop tweaks ===================== */
+/* ===================== Sidebar & Desktop Wrapper (hidden on mobile) ===================== */
+.sidebar{display:none}
+.app-main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;overflow:hidden}
+
+/* ===================== Desktop Layout ===================== */
 @media(min-width:768px){
-  .modal{border-radius:20px;max-height:80vh;margin-bottom:5vh}
+  /* -- App shell: horizontal layout with sidebar -- */
+  #app{flex-direction:row;max-width:none;border-left:none !important;border-right:none !important}
+
+  /* -- Sidebar -- */
+  .sidebar{display:flex;flex-direction:column;width:240px;min-width:240px;background:#0d1a2d;border-right:1px solid rgba(255,255,255,.06);height:100%;padding:0;z-index:10}
+  .sidebar-logo{padding:28px 24px 8px;font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--accent),#7c5cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.3px}
+  .sidebar-subtitle{padding:0 24px 24px;font-size:12px;color:var(--text3);font-weight:500}
+  .sidebar-nav{flex:1;padding:0 12px;display:flex;flex-direction:column;gap:2px}
+  .sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:10px;color:var(--text2);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+  .sidebar-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+  .sidebar-item.active{background:rgba(77,139,255,.15);color:var(--accent)}
+  .sidebar-item svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .sidebar-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,.06)}
+  .sidebar-email{font-size:12px;color:var(--text3);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sidebar-logout{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;background:none;border:none;padding:6px 0;transition:color .15s;width:100%}
+  .sidebar-logout:hover{color:var(--red)}
+  .sidebar-logout svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+
+  /* -- Hide mobile elements on desktop -- */
+  .tab-bar{display:none !important}
+  .safe-top{display:none}
+
+  /* -- Main content area fills remaining width -- */
+  .app-main{flex:1;min-width:0;position:relative;display:flex;flex-direction:column;height:100%}
+  .views{flex:1;overflow:hidden}
+  .view{padding:32px 40px 40px;max-width:1100px;margin:0 auto}
+
+  /* -- FAB relative to main content -- */
+  .fab{position:fixed;bottom:32px;right:40px}
+
+  /* -- Modals: centered, not bottom-sheet -- */
   .modal-overlay{align-items:center}
+  .modal{border-radius:20px;max-width:520px;max-height:80vh;margin-bottom:0;padding:8px 28px 28px}
+
+  /* -- Heute: 2-column layout for tasks + upcoming -- */
+  .stats-row{gap:16px}
+  .stat-card{padding:18px}
+  .stat-num{font-size:32px}
+  #v-heute .heute-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+
+  /* -- Tasks: wider items -- */
+  .task-item{padding:16px 20px}
+  .task-title{font-size:16px}
+
+  /* -- Projects: 3-4 column grid -- */
+  .projects-grid{grid-template-columns:repeat(3,1fr);gap:16px}
+
+  /* -- Notes: 2-column grid -- */
+  #notes-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  #notes-list .note-card{margin-bottom:0}
+  #notes-list .empty{grid-column:1/-1}
+}
+
+/* -- Notes: 3-column grid on wider screens -- */
+@media(min-width:1100px){
+  #notes-list{grid-template-columns:repeat(3,1fr) !important}
+}
+
+/* -- Projects: 4-column grid on wider screens -- */
+@media(min-width:1200px){
+  .projects-grid{grid-template-columns:repeat(4,1fr) !important}
 }
 </style>
 </head>
@@ -262,6 +325,43 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 <!-- ==================== App ==================== -->
 <div id="app" style="display:none">
   <div class="safe-top"></div>
+
+  <!-- Desktop Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">Markus Hub</div>
+    <div class="sidebar-subtitle">Personal Command Center</div>
+    <div class="sidebar-nav">
+      <button class="sidebar-item active" onclick="switchTab('heute',this)" data-tab="heute">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span>Heute</span>
+      </button>
+      <button class="sidebar-item" onclick="switchTab('tasks',this)" data-tab="tasks">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <span>Tasks</span>
+      </button>
+      <button class="sidebar-item" onclick="switchTab('projekte',this)" data-tab="projekte">
+        <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2v11z"/></svg>
+        <span>Projekte</span>
+      </button>
+      <button class="sidebar-item" onclick="switchTab('notizen',this)" data-tab="notizen">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Notizen</span>
+      </button>
+      <button class="sidebar-item" onclick="switchTab('profil',this)" data-tab="profil">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profil</span>
+      </button>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-email" id="sidebar-email"></div>
+      <button class="sidebar-logout" onclick="logout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Abmelden
+      </button>
+    </div>
+  </nav>
+
+  <div class="app-main">
   <div class="views">
 
     <!-- ===== Heute ===== -->
@@ -269,10 +369,16 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
       <div id="greeting" class="greeting"></div>
       <div id="greeting-sub" class="greeting-sub"></div>
       <div class="stats-row" id="heute-stats"></div>
-      <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
-      <div id="today-tasks"></div>
-      <div class="section-title" style="margin-top:20px">Nächste 7 Tage <span id="week-count" class="count"></span></div>
-      <div id="week-tasks"></div>
+      <div class="heute-columns">
+        <div>
+          <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
+          <div id="today-tasks"></div>
+        </div>
+        <div>
+          <div class="section-title">Nächste 7 Tage <span id="week-count" class="count"></span></div>
+          <div id="week-tasks"></div>
+        </div>
+      </div>
     </div>
 
     <!-- ===== Tasks ===== -->
@@ -385,6 +491,7 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
   <button class="fab" id="fab" onclick="openTaskModal()">
     <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
+  </div><!-- /.app-main -->
 </div>
 
 <!-- ==================== Task Modal ==================== -->
@@ -652,6 +759,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
     currentUser = session.user;
     $('auth-screen').classList.add('hidden');
     $('app').style.display = 'flex';
+    const sidebarEmail = $('sidebar-email');
+    if (sidebarEmail) sidebarEmail.textContent = session.user.email;
     await loadCategories();
     await loadAll();
   } else {
@@ -727,8 +836,12 @@ function switchTab(tab, el) {
   currentTab = tab;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   $(`v-${tab}`).classList.add('active');
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  if (el) el.classList.add('active');
+  // Update bottom tab bar
+  document.querySelectorAll('.tab-bar .tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab-bar .tab[data-tab="${tab}"]`)?.classList.add('active');
+  // Update sidebar
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  document.querySelector(`.sidebar-item[data-tab="${tab}"]`)?.classList.add('active');
   // Show/hide FAB
   $('fab').style.display = (tab === 'heute' || tab === 'tasks') ? 'flex' : 'none';
   // Reset project detail
@@ -1312,6 +1425,8 @@ async function quickAddNote() {
     currentUser = session.user;
     $('auth-screen').classList.add('hidden');
     $('app').style.display = 'flex';
+    const sidebarEmail2 = $('sidebar-email');
+    if (sidebarEmail2) sidebarEmail2.textContent = session.user.email;
     await loadCategories();
     await loadAll();
   }
