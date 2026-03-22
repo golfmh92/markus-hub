@@ -3,7 +3,7 @@
 <head>
 <!--
   =====================================================================
-  Markus Hub — Personal Productivity PWA
+  Markus Dashboard — Personal Productivity PWA
   =====================================================================
   Tech: Single-file HTML + Supabase (Auth + DB)
   Build: Replace __SUPA_URL__ and __SUPA_KEY__ via build.sh
@@ -21,10 +21,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Markus Hub">
+<meta name="apple-mobile-web-app-title" content="Markus Dashboard">
 <meta name="theme-color" content="#0A1628">
-<title>Markus Hub</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTWFya3VzIEh1YiIsInNob3J0X25hbWUiOiJIdWIiLCJzdGFydF91cmwiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwQTE2MjgiLCJ0aGVtZV9jb2xvciI6IiMwQTE2MjgiLCJpY29ucyI6W119">
+<title>Markus Dashboard</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTWFya3VzIERhc2hib2FyZCIsInNob3J0X25hbWUiOiJEYXNoYm9hcmQiLCJzdGFydF91cmwiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwQTE2MjgiLCJ0aGVtZV9jb2xvciI6IiMwQTE2MjgiLCJpY29ucyI6W119Cg==">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ===================== CSS Reset & Variables ===================== */
@@ -305,7 +305,7 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 <!-- ==================== Auth Screen ==================== -->
 <div id="auth-screen">
   <div class="auth-box">
-    <div class="auth-logo">Markus Hub</div>
+    <div class="auth-logo">Markus Dashboard</div>
     <div class="auth-sub">Dein persönliches Command Center</div>
     <div id="auth-error" class="auth-error"></div>
     <div class="form-group">
@@ -328,7 +328,7 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 
   <!-- Desktop Sidebar -->
   <nav class="sidebar" id="sidebar">
-    <div class="sidebar-logo">Markus Hub</div>
+    <div class="sidebar-logo">Markus Dashboard</div>
     <div class="sidebar-subtitle">Personal Command Center</div>
     <div class="sidebar-nav">
       <button class="sidebar-item active" onclick="switchTab('heute',this)" data-tab="heute">
@@ -645,7 +645,7 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 
 <script>
 /* =============================================================================
-   Markus Hub — Application Logic
+   Markus Dashboard — Application Logic
    ============================================================================= */
 
 // ── Supabase Init ──
