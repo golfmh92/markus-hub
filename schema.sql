@@ -12,6 +12,8 @@ create table hub_projects (
   category text not null default 'Persönlich',
   color text default '#0055D4',
   icon text default '📁',
+  next_date date,
+  location text,
   archived boolean default false,
   created_at timestamptz default now()
 );
