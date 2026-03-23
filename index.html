@@ -538,7 +538,7 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
       </div>
       <div class="form-group">
         <label>Projekt</label>
-        <select id="tm-project" class="input"></select>
+        <select id="tm-project" class="input" onchange="handleProjectSelectChange(this)"></select>
       </div>
     </div>
     <div class="actions">
@@ -927,13 +927,17 @@ function renderHeute() {
   $('heute-stats').innerHTML = `
     <div class="stat-card"><div class="stat-num" style="color:var(--accent)">${todayTasks.length}</div><div class="stat-label">Heute</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${weekTasks.length}</div><div class="stat-label">Diese Woche</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--red)">${overdue.length}</div><div class="stat-label">Überfällig</div></div>
+    <div class="stat-card" style="cursor:pointer" onclick="showOverdueTasks()" title="Überfällige Tasks anzeigen"><div class="stat-num" style="color:var(--red)">${overdue.length}</div><div class="stat-label">Überfällig</div></div>
   `;
 
-  $('today-count').textContent = todayTasks.length;
+  // High-priority tasks that are not done and not due today (always visible)
+  const highPriorityAlways = openTasks.filter(t => t.priority === 'high' && t.due_date !== td && !overdue.includes(t));
+  const todaySection = [...todayTasks, ...highPriorityAlways];
+
+  $('today-count').textContent = todaySection.length;
   $('week-count').textContent = weekTasks.length;
 
-  const sortedToday = [...todayTasks].sort(prioritySorter);
+  const sortedToday = [...todaySection].sort(prioritySorter);
   $('today-tasks').innerHTML = sortedToday.length
     ? sortedToday.map(t => taskHTML(t)).join('')
     : '<div class="empty"><div class="empty-icon">✅</div><h3>Alles erledigt!</h3><p>Keine Tasks für heute</p></div>';
@@ -942,6 +946,16 @@ function renderHeute() {
   $('week-tasks').innerHTML = combined.length
     ? combined.map(t => taskHTML(t)).join('')
     : '<div class="empty"><p style="color:var(--text3)">Keine anstehenden Deadlines</p></div>';
+}
+
+function showOverdueTasks() {
+  taskFilter = 'overdue';
+  const tabs = document.querySelectorAll('.tab, .sidebar-item');
+  tabs.forEach(t => { if (t.dataset.tab === 'tasks') t.classList.add('active'); else t.classList.remove('active'); });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $('v-tasks').classList.add('active');
+  currentTab = 'tasks';
+  renderTasks();
 }
 
 function prioritySorter(a, b) {
@@ -972,12 +986,10 @@ function esc(s) { if(!s) return ''; const d = document.createElement('div'); d.t
 // ── Render: Tasks ──
 function renderTasks() {
   // Filter tabs
-  $('task-filters').innerHTML = ['Alle','Heute','Diese Woche','Erledigt'].map(label => {
-    const key = label.toLowerCase().replace(' ','_');
-    const map = {'alle':'alle','heute':'heute','diese_woche':'week','erledigt':'done'};
-    const fkey = map[key] || key;
-    return `<button class="filter-tab ${taskFilter===fkey?'active':''}" onclick="taskFilter='${fkey}';renderTasks()">${label}</button>`;
-  }).join('');
+  const filterDefs = [['Alle','alle'],['Heute','heute'],['Diese Woche','week'],['Überfällig','overdue'],['Erledigt','done']];
+  $('task-filters').innerHTML = filterDefs.map(([label, fkey]) =>
+    `<button class="filter-tab ${taskFilter===fkey?'active':''}" onclick="taskFilter='${fkey}';renderTasks()">${label}</button>`
+  ).join('');
 
   // Category sub-filters
   const allCats = ['all', ...categories.map(c => c.name)];
@@ -998,6 +1010,7 @@ function renderTasks() {
   switch(taskFilter) {
     case 'heute': filtered = filtered.filter(t => !t.done && t.due_date === td); break;
     case 'week': filtered = filtered.filter(t => !t.done && t.due_date && t.due_date <= weekStr); break;
+    case 'overdue': filtered = filtered.filter(t => !t.done && t.due_date && t.due_date < td); break;
     case 'done': filtered = filtered.filter(t => t.done); break;
     default: filtered = filtered.filter(t => !t.done); break;
   }
@@ -1219,7 +1232,17 @@ function populateCategorySelect(selectId) {
 function populateProjectSelect(selectId, allowEmpty = true) {
   const sel = $(selectId);
   sel.innerHTML = (allowEmpty ? '<option value="">– Kein Projekt –</option>' : '') +
-    projects.filter(p => !p.archived).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    projects.filter(p => !p.archived).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') +
+    '<option value="__new__">＋ Neues Projekt anlegen</option>';
+}
+
+function handleProjectSelectChange(sel) {
+  if (sel.value === '__new__') {
+    sel.value = '';
+    window._fromTaskModal = true;
+    closeModal('task-modal');
+    openProjectModal();
+  }
 }
 
 // ── Task Modal ──
@@ -1382,14 +1405,21 @@ async function saveProject() {
   };
   if (!payload.name) return;
 
+  let newProjId = null;
   if (id) {
     await sb.from('hub_projects').update(payload).eq('id', id);
   } else {
-    await sb.from('hub_projects').insert(payload);
+    const { data } = await sb.from('hub_projects').insert(payload).select('id').single();
+    newProjId = data?.id;
   }
   closeModal('project-modal');
   await loadProjects();
-  if (currentProjectId) {
+  if (window._fromTaskModal) {
+    window._fromTaskModal = false;
+    populateProjectSelect('tm-project');
+    if (newProjId) $('tm-project').value = newProjId;
+    openModal('task-modal');
+  } else if (currentProjectId) {
     openProjectDetail(currentProjectId);
   } else {
     renderProjects();
