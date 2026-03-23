@@ -659,6 +659,32 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
   </div>
 </div>
 
+<!-- ==================== Meeting Modal ==================== -->
+<div class="modal-overlay" id="meeting-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Neues Meeting</h2>
+    <div class="form-group">
+      <label>Titel</label>
+      <input id="mm-title" class="input" placeholder="Worum ging es?">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Datum</label>
+        <input id="mm-date" class="input" type="date">
+      </div>
+      <div class="form-group">
+        <label>Projekt</label>
+        <select id="mm-project" class="input"></select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="closeModal('meeting-modal')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveMeeting()">Weiter →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== Entry Modal ==================== -->
 <div class="modal-overlay" id="entry-modal">
   <div class="modal">
@@ -1602,6 +1628,30 @@ async function archiveProject() {
   await loadProjects();
   closeProjectDetail();
   renderProjects();
+}
+
+// ── Meeting Modal ──
+function openMeetingModal() {
+  populateProjectSelect('mm-project');
+  $('mm-title').value = '';
+  $('mm-date').value = today();
+  $('mm-project').value = '';
+  openModal('meeting-modal');
+}
+
+async function saveMeeting() {
+  const title = $('mm-title').value.trim();
+  if (!title) return;
+  const { data, error } = await sb.from('hub_meetings').insert({
+    title,
+    meeting_date: $('mm-date').value,
+    project_id: $('mm-project').value || null,
+    status: 'draft',
+    user_id: currentUser.id
+  }).select('id').single();
+  if (error) { console.error('[saveMeeting]', error); return; }
+  closeModal('meeting-modal');
+  openMeetingDetail(data.id);
 }
 
 // ── Entry Modal ──
