@@ -2210,7 +2210,7 @@ async function deleteNote() {
 async function quickAddNote() {
   const input = $('note-quick-input');
   const content = input.value.trim();
-  if (!content) return;
+  if (!content) return openNoteModal();
   input.value = '';
   await sb.from('hub_notes').insert({
     content,
