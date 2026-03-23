@@ -402,14 +402,16 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
       <div id="greeting" class="greeting"></div>
       <div id="greeting-sub" class="greeting-sub"></div>
       <div class="stats-row" id="heute-stats"></div>
-      <div id="high-priority-section" style="margin-bottom:20px;display:none">
-        <div class="section-title">🔴 Hohe Priorität <span id="high-priority-count" class="count"></span></div>
-        <div id="high-priority-tasks"></div>
-      </div>
       <div class="heute-columns">
-        <div id="today-section">
-          <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
-          <div id="today-tasks"></div>
+        <div>
+          <div id="today-section">
+            <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
+            <div id="today-tasks"></div>
+          </div>
+          <div id="high-priority-section" style="margin-top:20px;display:none">
+            <div class="section-title">🔴 Hohe Priorität <span id="high-priority-count" class="count"></span></div>
+            <div id="high-priority-tasks"></div>
+          </div>
         </div>
         <div>
           <div class="section-title">Nächste 7 Tage <span id="week-count" class="count"></span></div>
@@ -1077,18 +1079,19 @@ function renderHeute() {
     $('today-section').style.display = 'none';
   }
 
-  // Update grid columns based on whether today-section is visible
-  const heuteGrid = document.querySelector('.heute-columns');
-  if (sortedToday.length) {
-    heuteGrid.style.gridTemplateColumns = '';
+  // Hide left column entirely if nothing to show there
+  const leftCol = $('today-section').parentElement;
+  if (!sortedToday.length && !highPriorityAlways.length) {
+    leftCol.style.display = 'none';
   } else {
-    heuteGrid.style.gridTemplateColumns = '1fr';
+    leftCol.style.display = '';
   }
 
   // High-priority section
   const hpSection = $('high-priority-section');
   if (highPriorityAlways.length) {
     hpSection.style.display = 'block';
+    hpSection.style.marginTop = sortedToday.length ? '20px' : '0';
     $('high-priority-count').textContent = highPriorityAlways.length;
     $('high-priority-tasks').innerHTML = highPriorityAlways.sort((a,b) => a.due_date?.localeCompare(b.due_date||'9')||0).map(t => taskHTML(t)).join('');
   } else {
