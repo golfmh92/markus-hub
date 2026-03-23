@@ -382,6 +382,10 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
         <div>
           <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
           <div id="today-tasks"></div>
+          <div id="high-priority-section" style="margin-top:20px;display:none">
+            <div class="section-title">🔴 Hohe Priorität <span id="high-priority-count" class="count"></span></div>
+            <div id="high-priority-tasks"></div>
+          </div>
         </div>
         <div>
           <div class="section-title">Nächste 7 Tage <span id="week-count" class="count"></span></div>
@@ -930,17 +934,26 @@ function renderHeute() {
     <div class="stat-card" style="cursor:pointer" onclick="showOverdueTasks()" title="Überfällige Tasks anzeigen"><div class="stat-num" style="color:var(--red)">${overdue.length}</div><div class="stat-label">Überfällig</div></div>
   `;
 
-  // High-priority tasks that are not done and not due today (always visible)
+  // High-priority tasks not due today and not overdue – own section
   const highPriorityAlways = openTasks.filter(t => t.priority === 'high' && t.due_date !== td && !overdue.includes(t));
-  const todaySection = [...todayTasks, ...highPriorityAlways];
 
-  $('today-count').textContent = todaySection.length;
+  $('today-count').textContent = todayTasks.length;
   $('week-count').textContent = weekTasks.length;
 
-  const sortedToday = [...todaySection].sort(prioritySorter);
+  const sortedToday = [...todayTasks].sort(prioritySorter);
   $('today-tasks').innerHTML = sortedToday.length
     ? sortedToday.map(t => taskHTML(t)).join('')
     : '<div class="empty"><div class="empty-icon">✅</div><h3>Alles erledigt!</h3><p>Keine Tasks für heute</p></div>';
+
+  // High-priority section
+  const hpSection = $('high-priority-section');
+  if (highPriorityAlways.length) {
+    hpSection.style.display = 'block';
+    $('high-priority-count').textContent = highPriorityAlways.length;
+    $('high-priority-tasks').innerHTML = highPriorityAlways.sort((a,b) => a.due_date?.localeCompare(b.due_date||'9')||0).map(t => taskHTML(t)).join('');
+  } else {
+    hpSection.style.display = 'none';
+  }
 
   const combined = [...overdue.sort((a,b) => a.due_date?.localeCompare(b.due_date)), ...weekTasks.sort((a,b) => a.due_date?.localeCompare(b.due_date))];
   $('week-tasks').innerHTML = combined.length
