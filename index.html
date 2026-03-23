@@ -1138,6 +1138,13 @@ function taskHTML(t) {
 }
 
 function esc(s) { if(!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fmtNote(s) {
+  if (!s) return '';
+  return esc(s).split('\n').map(line => {
+    if (/^[-•]\s/.test(line)) return '<div style="padding-left:12px;text-indent:-12px">• ' + line.replace(/^[-•]\s+/, '') + '</div>';
+    return line;
+  }).join('\n');
+}
 
 // ── Render: Tasks ──
 function renderTasks() {
@@ -1334,7 +1341,7 @@ function renderNotes() {
       const projName = n.project_id ? projects.find(p=>p.id===n.project_id)?.name : null;
       return `
       <div class="note-card ${n.pinned?'pinned':''}" onclick="openNoteModal('${n.id}')">
-        <div class="note-content">${esc(n.content)}</div>
+        <div class="note-content">${fmtNote(n.content)}</div>
         <div class="note-meta">
           ${n.category ? `<span class="task-cat" style="background:${catColor(n.category)}22;color:${catColor(n.category)};font-size:10px;padding:1px 6px">${esc(n.category)}</span>` : ''}
           ${projName ? `<span>📁 ${esc(projName)}</span>` : ''}
