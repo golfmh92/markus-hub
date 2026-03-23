@@ -212,6 +212,16 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 .note-card.pinned{box-shadow:0 0 0 1px var(--amber),var(--shadow)}
 .note-card.pinned::before{content:'📌';position:absolute;top:10px;right:12px;font-size:12px}
 .note-content{font-size:14px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word}
+.note-content ul,.note-content ol{padding-left:20px;margin:4px 0}
+.note-content li{margin:2px 0}
+.note-toolbar{display:flex;align-items:center;gap:2px;padding:6px 8px;background:var(--card2);border:1px solid var(--separator);border-bottom:none;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.note-tb-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:none;border:none;color:var(--text);cursor:pointer;font-size:14px;transition:background .15s}
+.note-tb-btn:active{background:rgba(0,0,0,.08)}
+.note-tb-sep{width:1px;height:20px;background:var(--separator);margin:0 4px}
+.note-editor{border-radius:0 0 var(--radius-sm) var(--radius-sm) !important}
+.note-editor:empty::before{content:attr(data-placeholder);color:var(--text3)}
+.note-editor ul,.note-editor ol{padding-left:20px;margin:4px 0}
+.note-editor li{margin:2px 0}
 .note-meta{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--text3)}
 .note-input-wrap{display:flex;gap:8px;margin-bottom:20px}
 .note-input-wrap .input{flex:1}
@@ -731,7 +741,18 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
     <input type="hidden" id="note-edit-id">
     <div class="form-group">
       <label>Inhalt</label>
-      <textarea id="nm-content" class="input" rows="10" placeholder="Notiz..."></textarea>
+      <div class="note-toolbar">
+        <button type="button" class="note-tb-btn" onclick="noteCmd('bold')" title="Fett"><b>B</b></button>
+        <button type="button" class="note-tb-btn" onclick="noteCmd('italic')" title="Kursiv"><i>I</i></button>
+        <span class="note-tb-sep"></span>
+        <button type="button" class="note-tb-btn" onclick="noteCmd('insertUnorderedList')" title="Aufzählung">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <button type="button" class="note-tb-btn" onclick="noteCmd('insertOrderedList')" title="Nummerierung">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><text x="2" y="8" font-size="7" fill="currentColor" stroke="none" font-family="system-ui">1.</text><text x="2" y="14.5" font-size="7" fill="currentColor" stroke="none" font-family="system-ui">2.</text><text x="2" y="21" font-size="7" fill="currentColor" stroke="none" font-family="system-ui">3.</text><line x1="11" y1="6" x2="21" y2="6"/><line x1="11" y1="12" x2="21" y2="12"/><line x1="11" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="nm-content" class="input note-editor" contenteditable="true" data-placeholder="Notiz..." style="min-height:200px;max-height:50vh;overflow-y:auto;white-space:pre-wrap;line-height:1.6"></div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -1140,10 +1161,26 @@ function taskHTML(t) {
 function esc(s) { if(!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function fmtNote(s) {
   if (!s) return '';
-  return esc(s).split('\n').map(line => {
-    if (/^[-•]\s/.test(line)) return '<div style="padding-left:12px;text-indent:-12px">• ' + line.replace(/^[-•]\s+/, '') + '</div>';
-    return line;
-  }).join('\n');
+  const lines = esc(s).split('\n');
+  let html = '', inUl = false, inOl = false;
+  for (const line of lines) {
+    const bullet = /^[-•]\s(.*)/.exec(line);
+    const numbered = /^(\d+)\.\s(.*)/.exec(line);
+    if (bullet) {
+      if (!inUl) { if (inOl) { html += '</ol>'; inOl = false; } html += '<ul>'; inUl = true; }
+      html += '<li>' + bullet[1] + '</li>';
+    } else if (numbered) {
+      if (!inOl) { if (inUl) { html += '</ul>'; inUl = false; } html += '<ol>'; inOl = true; }
+      html += '<li>' + numbered[2] + '</li>';
+    } else {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (inOl) { html += '</ol>'; inOl = false; }
+      html += line + '\n';
+    }
+  }
+  if (inUl) html += '</ul>';
+  if (inOl) html += '</ol>';
+  return html;
 }
 
 // ── Render: Tasks ──
@@ -2160,6 +2197,44 @@ async function deleteEntry(id) {
 }
 
 // ── Note Modal ──
+function noteCmd(cmd, val) {
+  $('nm-content').focus();
+  document.execCommand(cmd, false, val || null);
+}
+
+function getNoteHTML() { return $('nm-content').innerHTML.trim(); }
+function setNoteHTML(html) { $('nm-content').innerHTML = html || ''; }
+
+// Convert stored plain text to HTML for editor
+function textToHTML(text) {
+  if (!text) return '';
+  // If already contains HTML tags, return as-is (already rich text)
+  if (/<[a-z][\s\S]*>/i.test(text)) return text;
+  // Convert plain text with markdown-like syntax
+  return esc(text).split('\n').map(line => {
+    if (/^[-•]\s/.test(line)) return '<li>' + line.replace(/^[-•]\s+/, '') + '</li>';
+    return line;
+  }).join('\n').replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+}
+
+// Convert HTML back to clean text for storage
+function htmlToText(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  // Process lists
+  div.querySelectorAll('ul').forEach(ul => {
+    const items = ul.querySelectorAll('li');
+    const text = Array.from(items).map(li => '- ' + li.textContent.trim()).join('\n');
+    ul.replaceWith(document.createTextNode(text));
+  });
+  div.querySelectorAll('ol').forEach(ol => {
+    const items = ol.querySelectorAll('li');
+    const text = Array.from(items).map((li, i) => (i+1) + '. ' + li.textContent.trim()).join('\n');
+    ol.replaceWith(document.createTextNode(text));
+  });
+  return div.innerText.trim();
+}
+
 function openNoteModal(editId) {
   populateCategorySelect('nm-cat');
   populateProjectSelect('nm-project');
@@ -2170,12 +2245,12 @@ function openNoteModal(editId) {
   if (editId) {
     const n = notes.find(n => n.id === editId);
     if (!n) return;
-    $('nm-content').value = n.content;
+    setNoteHTML(textToHTML(n.content));
     $('nm-cat').value = n.category || '';
     $('nm-project').value = n.project_id || '';
     $('nm-pinned').checked = n.pinned || false;
   } else {
-    $('nm-content').value = '';
+    setNoteHTML('');
     $('nm-cat').value = '';
     $('nm-project').value = '';
     $('nm-pinned').checked = false;
@@ -2186,7 +2261,7 @@ function openNoteModal(editId) {
 async function saveNote() {
   const id = $('note-edit-id').value;
   const payload = {
-    content: $('nm-content').value.trim(),
+    content: htmlToText(getNoteHTML()),
     category: $('nm-cat').value || null,
     project_id: $('nm-project').value || null,
     pinned: $('nm-pinned').checked,
