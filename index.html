@@ -471,6 +471,21 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
         <input id="new-cat-input" class="input" placeholder="Neue Kategorie..." onkeydown="if(event.key==='Enter')addCategory()">
         <button class="btn btn-primary btn-sm" onclick="addCategory()">+</button>
       </div>
+      <div style="margin-top:24px">
+        <div class="section-title">KI-Integration</div>
+        <div style="background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)">
+          <div class="form-group">
+            <label>OpenAI API Key (für Transkription)</label>
+            <input id="profile-openai-key" class="input" type="password" placeholder="sk-...">
+          </div>
+          <div class="form-group">
+            <label>Anthropic API Key (für Protokoll)</label>
+            <input id="profile-anthropic-key" class="input" type="password" placeholder="sk-ant-...">
+          </div>
+          <button class="btn btn-primary" onclick="saveProfile()" style="width:100%">Speichern</button>
+          <div id="profile-save-msg" style="text-align:center;margin-top:8px;font-size:13px;color:var(--green)"></div>
+        </div>
+      </div>
       <button class="btn btn-danger btn-block" style="margin-top:32px" onclick="logout()">Abmelden</button>
     </div>
 
@@ -684,6 +699,8 @@ let tasks = [];
 let projects = [];
 let entries = [];
 let notes = [];
+let meetings = [];
+let userProfile = { openai_key: '', anthropic_key: '' };
 let currentTab = 'heute';
 let taskFilter = 'alle';
 let taskCatFilter = 'all';
@@ -815,7 +832,7 @@ initSession();
 
 // ── Data Loading ──
 async function loadAll() {
-  await Promise.all([loadTasks(), loadProjects(), loadNotes()]);
+  await Promise.all([loadTasks(), loadProjects(), loadNotes(), loadMeetings(), loadProfile()]);
   renderCurrentView();
 }
 
@@ -844,6 +861,42 @@ async function loadNotes() {
   if (error) console.error('[loadNotes]', error);
   console.log('[loadNotes]', data?.length, 'notes loaded');
   notes = data || [];
+}
+
+async function loadMeetings() {
+  const { data, error } = await sb.from('hub_meetings')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .neq('status', 'draft')
+    .order('meeting_date', { ascending: false });
+  if (error) console.error('[loadMeetings]', error);
+  meetings = data || [];
+  // Cleanup: delete draft records older than 1 hour
+  const cutoff = new Date(Date.now() - 3600000).toISOString();
+  await sb.from('hub_meetings').delete()
+    .eq('user_id', currentUser.id)
+    .eq('status', 'draft')
+    .lt('created_at', cutoff);
+}
+
+async function loadProfile() {
+  const { data } = await sb.from('hub_profiles').select('*').eq('id', currentUser.id).single();
+  if (data) userProfile = data;
+}
+
+async function saveProfile() {
+  const openaiKey = $('profile-openai-key').value.trim();
+  const anthropicKey = $('profile-anthropic-key').value.trim();
+  await sb.from('hub_profiles').upsert({
+    id: currentUser.id,
+    openai_key: openaiKey || null,
+    anthropic_key: anthropicKey || null,
+    updated_at: new Date().toISOString()
+  });
+  userProfile.openai_key = openaiKey;
+  userProfile.anthropic_key = anthropicKey;
+  $('profile-save-msg').textContent = 'Gespeichert ✓';
+  setTimeout(() => { $('profile-save-msg').textContent = ''; }, 2000);
 }
 
 // ── Categories (stored in localStorage per user) ──
@@ -1224,6 +1277,9 @@ function renderProfile() {
       <div class="cat-name">${esc(c.name)}</div>
       ${DEFAULT_CATEGORIES.find(d => d.name === c.name) ? '' : `<div class="cat-del" onclick="removeCategory('${esc(c.name)}')">×</div>`}
     </div>`).join('');
+
+  $('profile-openai-key').value = userProfile.openai_key || '';
+  $('profile-anthropic-key').value = userProfile.anthropic_key || '';
 }
 
 // ── Modals ──
