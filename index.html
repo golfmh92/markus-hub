@@ -1373,9 +1373,165 @@ function meetingCardHTML(m) {
     </div>`;
 }
 
+let currentMeetingId = null;
+let currentMeeting = null;
+
 function openMeetingDetail(id) {
-  // Implemented in Task 5
-  console.log('openMeetingDetail', id);
+  currentMeetingId = id;
+  $('meetings-header').style.display = 'none';
+  $('meetings-filter-row').style.display = 'none';
+  $('meetings-list').style.display = 'none';
+  $('meeting-detail-view').style.display = 'block';
+  renderMeetingDetail();
+}
+
+function closeMeetingDetail() {
+  currentMeetingId = null;
+  currentMeeting = null;
+  $('meeting-detail-view').style.display = 'none';
+  $('meetings-header').style.display = '';
+  $('meetings-filter-row').style.display = '';
+  $('meetings-list').style.display = '';
+  loadMeetings().then(() => renderMeetings());
+}
+
+async function renderMeetingDetail() {
+  const { data: m } = await sb.from('hub_meetings').select('*').eq('id', currentMeetingId).single();
+  if (!m) { closeMeetingDetail(); return; }
+  currentMeeting = m;
+
+  const proj = projects.find(p => p.id === m.project_id);
+  const dur = m.duration_seconds ? `${Math.floor(m.duration_seconds/60)} Min ${m.duration_seconds%60} Sek` : '';
+
+  let audioHTML = '';
+  if (m.audio_path) {
+    const { data: signedData } = await sb.storage.from('meeting-audio').createSignedUrl(m.audio_path, 3600);
+    audioHTML = signedData?.signedUrl
+      ? `<audio controls style="width:100%;margin-bottom:16px;border-radius:var(--radius-sm)" src="${signedData.signedUrl}"></audio>`
+      : '';
+  }
+
+  let mainContent = '';
+  if (m.status === 'draft' || m.status === 'new') {
+    mainContent = renderAudioCaptureUI(m);
+  } else if (m.status === 'transcribing' || m.status === 'summarizing') {
+    const pct = m.status === 'transcribing' ? 40 : 75;
+    const label = m.status === 'transcribing' ? 'Transkribiere Audio...' : 'Erstelle Protokoll...';
+    mainContent = `
+      <div class="pipeline-status">
+        <div class="spinner"></div>
+        <div>${label}</div>
+        <div class="pipeline-progress"><div class="pipeline-progress-bar" style="width:${pct}%"></div></div>
+      </div>`;
+    setTimeout(() => { if (currentMeetingId === m.id) renderMeetingDetail(); }, 3000);
+  } else if (m.status === 'error') {
+    const rawBlock = m.error_raw
+      ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;color:var(--text2)">Rohe Antwort anzeigen</summary><pre style="font-size:11px;white-space:pre-wrap;margin-top:6px;padding:8px;background:var(--card2);border-radius:6px">${esc(m.error_raw)}</pre></details>`
+      : '';
+    mainContent = `
+      <div style="background:rgba(255,59,48,.1);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+        <div style="color:var(--red);font-weight:600;margin-bottom:8px">⚠ Fehler bei der Verarbeitung</div>
+        ${rawBlock}
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="retryPipeline('${m.id}')">Erneut versuchen</button>
+      </div>
+      ${audioHTML}`;
+  } else if (m.status === 'done') {
+    mainContent = renderMeetingResults(m, audioHTML);
+  }
+
+  $('meeting-detail-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <h2 style="font-size:22px;font-weight:800">${esc(m.title)}</h2>
+        <div style="font-size:13px;color:var(--text2);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap">
+          <span>📅 ${fmtDate(m.meeting_date)}</span>
+          ${dur ? `<span>⏱ ${dur}</span>` : ''}
+          ${proj ? `<span class="badge" style="background:${proj.color}22;color:${proj.color}">${esc(proj.name)}</span>` : ''}
+        </div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteMeeting('${m.id}')">Löschen</button>
+    </div>
+    ${mainContent}
+  `;
+}
+
+function renderAudioCaptureUI(m) {
+  return `
+    <div class="audio-capture-box">
+      <div style="font-size:15px;font-weight:600;margin-bottom:16px">Audio hinzufügen</div>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+        <div style="text-align:center">
+          <button id="record-btn" class="record-btn" onclick="toggleRecording()">🎙</button>
+          <div id="record-timer" style="font-size:13px;color:var(--text2)">Aufnehmen</div>
+        </div>
+        <div style="text-align:center">
+          <label style="display:inline-flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer">
+            <div style="width:72px;height:72px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:28px">📁</div>
+            <div style="font-size:13px;color:var(--text2)">Datei</div>
+            <input type="file" accept=".mp3,.m4a,.wav,.mp4,.webm,audio/*" style="display:none" onchange="handleAudioFile(this)">
+          </label>
+        </div>
+      </div>
+      <div id="audio-preview" style="margin-top:16px;display:none">
+        <audio id="audio-preview-player" controls style="width:100%;border-radius:var(--radius-sm)"></audio>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-secondary btn-sm" style="flex:1" onclick="discardAudio()">Verwerfen</button>
+          <button class="btn btn-primary" style="flex:1" onclick="startPipeline()">Transkribieren & Zusammenfassen</button>
+        </div>
+      </div>
+      <div id="audio-error" style="color:var(--red);font-size:13px;margin-top:8px;display:none"></div>
+    </div>`;
+}
+
+function renderMeetingResults(m, audioHTML) {
+  const p = m.protocol || {};
+  const participants = (p.participants || []).join(', ') || '–';
+  const agenda = (p.agenda || []).map(a => `<li>${esc(a)}</li>`).join('') || '<li>–</li>';
+  const decisions = (p.decisions || []).map(d => `<li>${esc(d)}</li>`).join('') || '<li>–</li>';
+  const actionItems = (p.action_items || []).map((ai, i) => `
+    <div class="action-item-row">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px">${esc(ai.text)}</div>
+        ${ai.assignee ? `<div style="font-size:12px;color:var(--text2)">👤 ${esc(ai.assignee)}</div>` : ''}
+        ${ai.due ? `<div style="font-size:12px;color:var(--text2)">📅 ${fmtDate(ai.due)}</div>` : ''}
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="importActionItem(${i},'${m.id}')">→ Task</button>
+    </div>`).join('') || '<div style="color:var(--text3);font-size:13px">Keine Action Items</div>';
+
+  const transcriptHTML = m.transcript ? `
+    <details style="margin-top:16px">
+      <summary style="cursor:pointer;font-size:13px;color:var(--text2);padding:8px 0">Transkript anzeigen</summary>
+      <div style="font-size:13px;line-height:1.7;color:var(--text2);margin-top:8px;white-space:pre-wrap">${esc(m.transcript)}</div>
+    </details>` : '';
+
+  return `
+    ${audioHTML}
+    ${m.summary ? `<div class="summary-box">${esc(m.summary)}</div>` : ''}
+    <div class="protocol-section"><h3>Teilnehmer</h3><div>${esc(participants)}</div></div>
+    <div class="protocol-section"><h3>Agenda</h3><ul style="padding-left:16px">${agenda}</ul></div>
+    <div class="protocol-section"><h3>Beschlüsse</h3><ul style="padding-left:16px">${decisions}</ul></div>
+    <div class="protocol-section"><h3>Action Items</h3>${actionItems}</div>
+    ${transcriptHTML}
+  `;
+}
+
+async function deleteMeeting(id) {
+  const m = meetings.find(m => m.id === id) || currentMeeting;
+  if (m?.audio_path) {
+    await sb.storage.from('meeting-audio').remove([m.audio_path]);
+  }
+  await sb.from('hub_meetings').delete().eq('id', id);
+  closeMeetingDetail();
+}
+
+function importActionItem(index, meetingId) {
+  // Implemented in Task 9
+  console.log('importActionItem', index, meetingId);
+}
+
+async function retryPipeline(id) {
+  // Implemented in Task 8
+  console.log('retryPipeline', id);
 }
 
 // ── Render: Profile ──
