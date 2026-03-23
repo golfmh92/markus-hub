@@ -1525,13 +1525,36 @@ async function deleteMeeting(id) {
 }
 
 function importActionItem(index, meetingId) {
-  // Implemented in Task 9
-  console.log('importActionItem', index, meetingId);
+  const m = (currentMeeting && currentMeeting.id === meetingId) ? currentMeeting : meetings.find(m => m.id === meetingId);
+  if (!m) return;
+  const ai = (m.protocol?.action_items || [])[index];
+  if (!ai) return;
+  populateCategorySelect('tm-cat');
+  populateProjectSelect('tm-project');
+  $('task-modal-title').textContent = 'Neuer Task';
+  $('tm-delete-btn').style.display = 'none';
+  $('task-edit-id').value = '';
+  $('tm-title').value = ai.text || '';
+  $('tm-desc').value = '';
+  $('tm-cat').value = categories[0]?.name || '';
+  $('tm-priority').value = 'normal';
+  $('tm-due').value = ai.due || today();
+  $('tm-project').value = m.project_id || '';
+  openModal('task-modal');
 }
 
 async function retryPipeline(id) {
-  // Implemented in Task 8
-  console.log('retryPipeline', id);
+  const { data: m } = await sb.from('hub_meetings').select('*').eq('id', id).single();
+  if (!m || !m.audio_path) return;
+  if (!userProfile.openai_key || !userProfile.anthropic_key) { alert('Bitte API Keys im Profil prüfen.'); return; }
+  const { data: fileData, error } = await sb.storage.from('meeting-audio').download(m.audio_path);
+  if (error || !fileData) { alert('Audio nicht mehr verfügbar.'); return; }
+  const ext = m.audio_path.split('.').pop();
+  pendingAudioBlob = fileData;
+  pendingAudioDuration = m.duration_seconds || 0;
+  pendingAudioExt = ext;
+  currentMeetingId = id;
+  await startPipeline();
 }
 
 // ── Render: Profile ──
@@ -1808,6 +1831,247 @@ async function saveMeeting() {
   if (error) { console.error('[saveMeeting]', error); return; }
   closeModal('meeting-modal');
   openMeetingDetail(data.id);
+}
+
+// ── Meeting Audio Recording ──
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordingTimer = null;
+let recordingSeconds = 0;
+let pendingAudioBlob = null;
+let pendingAudioDuration = 0;
+let pendingAudioExt = 'webm';
+
+async function toggleRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recordedChunks = [];
+    recordingSeconds = 0;
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+    const recExt = mimeType === 'audio/webm' ? 'webm' : 'mp4';
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(recordedChunks, { type: mimeType });
+      pendingAudioBlob = blob;
+      pendingAudioDuration = recordingSeconds;
+      pendingAudioExt = recExt;
+      showAudioPreview(blob);
+    };
+    mediaRecorder.start(1000);
+    $('record-btn').classList.add('recording');
+    $('record-btn').textContent = '⏹';
+    recordingTimer = setInterval(() => {
+      recordingSeconds++;
+      const m = Math.floor(recordingSeconds/60).toString().padStart(2,'0');
+      const s = (recordingSeconds%60).toString().padStart(2,'0');
+      $('record-timer').textContent = `${m}:${s}`;
+    }, 1000);
+  } catch(e) {
+    const errEl = $('audio-error');
+    if (errEl) {
+      errEl.textContent = 'Mikrofonzugriff verweigert — bitte in den Browser-Einstellungen erlauben.';
+      errEl.style.display = 'block';
+    }
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder) mediaRecorder.stop();
+  clearInterval(recordingTimer);
+  $('record-btn').classList.remove('recording');
+  $('record-btn').textContent = '🎙';
+  $('record-timer').textContent = 'Aufnehmen';
+}
+
+function showAudioPreview(blob) {
+  const url = URL.createObjectURL(blob);
+  $('audio-preview-player').src = url;
+  $('audio-preview').style.display = 'block';
+}
+
+function discardAudio() {
+  pendingAudioBlob = null;
+  pendingAudioDuration = 0;
+  $('audio-preview').style.display = 'none';
+  $('audio-preview-player').src = '';
+}
+
+// ── Meeting Audio File Upload ──
+function handleAudioFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const errEl = $('audio-error');
+  if (file.size > 25 * 1024 * 1024) {
+    errEl.textContent = 'Aufnahme zu groß (max. 25 MB, ~90 Minuten). Bitte kürzen.';
+    errEl.style.display = 'block';
+    input.value = '';
+    return;
+  }
+  errEl.style.display = 'none';
+  const ext = file.name.split('.').pop().toLowerCase() || 'mp3';
+  pendingAudioExt = ext;
+  pendingAudioBlob = file;
+  const tempAudio = document.createElement('audio');
+  tempAudio.preload = 'metadata';
+  const url = URL.createObjectURL(file);
+  tempAudio.src = url;
+  tempAudio.onloadedmetadata = () => {
+    pendingAudioDuration = Math.round(tempAudio.duration) || 0;
+    URL.revokeObjectURL(url);
+  };
+  showAudioPreview(file);
+}
+
+// ── Meeting Processing Pipeline ──
+async function startPipeline() {
+  if (!pendingAudioBlob) return;
+  if (!userProfile.openai_key) { alert('Bitte zuerst den OpenAI API Key im Profil speichern.'); return; }
+  if (!userProfile.anthropic_key) { alert('Bitte zuerst den Anthropic API Key im Profil speichern.'); return; }
+
+  const id = currentMeetingId;
+  const blob = pendingAudioBlob;
+  const duration = pendingAudioDuration;
+  const ext = pendingAudioExt;
+  pendingAudioBlob = null;
+
+  // 1. Upload to Supabase Storage
+  const audioPath = `${currentUser.id}/${id}.${ext}`;
+  const { error: uploadError } = await sb.storage.from('meeting-audio').upload(audioPath, blob, {
+    contentType: blob.type || `audio/${ext}`,
+    upsert: true
+  });
+  if (uploadError) { await setMeetingError(id, uploadError.message); renderMeetingDetail(); return; }
+
+  await sb.from('hub_meetings').update({
+    audio_path: audioPath,
+    duration_seconds: duration || null,
+    status: 'transcribing',
+    updated_at: new Date().toISOString()
+  }).eq('id', id);
+  renderMeetingDetail();
+
+  // 2. Transcribe with Whisper
+  const transcript = await transcribeAudio(blob, ext, id);
+  if (!transcript) return;
+
+  await sb.from('hub_meetings').update({
+    transcript,
+    status: 'summarizing',
+    updated_at: new Date().toISOString()
+  }).eq('id', id);
+
+  // 3. Summarize with Claude
+  const result = await summarizeWithClaude(transcript, id);
+  if (!result) return;
+
+  // 4. Save results
+  await sb.from('hub_meetings').update({
+    summary: result.summary,
+    protocol: result,
+    status: 'done',
+    updated_at: new Date().toISOString()
+  }).eq('id', id);
+  await loadMeetings();
+  if (currentMeetingId === id) renderMeetingDetail();
+}
+
+async function setMeetingError(id, msg, rawResponse = null) {
+  console.error('[pipeline error]', msg);
+  await sb.from('hub_meetings').update({
+    status: 'error',
+    error_raw: rawResponse || null,
+    updated_at: new Date().toISOString()
+  }).eq('id', id);
+}
+
+async function transcribeAudio(blob, ext, meetingId) {
+  try {
+    const formData = new FormData();
+    formData.append('file', blob, `audio.${ext}`);
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'de');
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${userProfile.openai_key}` },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      await setMeetingError(meetingId, `Whisper error: ${err}`);
+      if (currentMeetingId === meetingId) renderMeetingDetail();
+      return null;
+    }
+    const data = await res.json();
+    return data.text || '';
+  } catch(e) {
+    await setMeetingError(meetingId, e.message);
+    if (currentMeetingId === meetingId) renderMeetingDetail();
+    return null;
+  }
+}
+
+async function summarizeWithClaude(transcript, meetingId) {
+  const prompt = `Du bist ein Assistent der Meeting-Protokolle erstellt.
+Analysiere das folgende Transkript und antworte NUR mit validem JSON (kein Markdown, keine Erklärung).
+
+Format:
+{
+  "summary": "2-3 Sätze Zusammenfassung",
+  "participants": ["Name"],
+  "agenda": ["Thema"],
+  "decisions": ["Beschluss"],
+  "action_items": [{ "text": "Aufgabe", "assignee": "Person oder null", "due": "YYYY-MM-DD oder null" }]
+}
+
+Transkript:
+${transcript}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': userProfile.anthropic_key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      await setMeetingError(meetingId, `Claude error: ${err}`);
+      if (currentMeetingId === meetingId) renderMeetingDetail();
+      return null;
+    }
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    try {
+      return JSON.parse(text);
+    } catch(parseErr) {
+      console.error('[claude] Invalid JSON:', text);
+      await setMeetingError(meetingId, 'Claude returned invalid JSON', text);
+      if (currentMeetingId === meetingId) renderMeetingDetail();
+      return null;
+    }
+  } catch(e) {
+    await setMeetingError(meetingId, e.message);
+    if (currentMeetingId === meetingId) renderMeetingDetail();
+    return null;
+  }
 }
 
 // ── Entry Modal ──
