@@ -1080,7 +1080,7 @@ function renderHeute() {
     hpSection.style.display = 'none';
   }
 
-  const combined = [...overdue.sort((a,b) => a.due_date?.localeCompare(b.due_date)), ...weekTasks.sort((a,b) => a.due_date?.localeCompare(b.due_date))];
+  const combined = [...overdue, ...weekTasks].sort((a,b) => (a.due_date||'').localeCompare(b.due_date||''));
   $('week-tasks').innerHTML = combined.length
     ? combined.map(t => taskHTML(t)).join('')
     : '<div class="empty"><p style="color:var(--text3)">Keine anstehenden Deadlines</p></div>';
@@ -1686,6 +1686,15 @@ async function toggleTask(id) {
   t.done_at = newDone ? new Date().toISOString() : null;
   renderCurrentView();
   await sb.from('hub_tasks').update({ done: newDone, done_at: t.done_at, updated_at: new Date().toISOString() }).eq('id', id);
+  // Sync back to EM dashboard if this is an EM task
+  if (t.em_task_id && t.em_source === 'golfarea36') {
+    const { data: { session } } = await sb.auth.getSession();
+    fetch(`${SUPA_URL}/functions/v1/em-sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ hub_task_id: id, done: newDone }),
+    }).catch(console.error);
+  }
 }
 
 async function quickAddTask() {
