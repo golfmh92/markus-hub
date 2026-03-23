@@ -402,16 +402,14 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
       <div id="greeting" class="greeting"></div>
       <div id="greeting-sub" class="greeting-sub"></div>
       <div class="stats-row" id="heute-stats"></div>
+      <div id="high-priority-section" style="margin-bottom:20px;display:none">
+        <div class="section-title">🔴 Hohe Priorität <span id="high-priority-count" class="count"></span></div>
+        <div id="high-priority-tasks"></div>
+      </div>
       <div class="heute-columns">
-        <div>
-          <div id="today-section">
-            <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
-            <div id="today-tasks"></div>
-          </div>
-          <div id="high-priority-section" style="margin-top:20px;display:none">
-            <div class="section-title">🔴 Hohe Priorität <span id="high-priority-count" class="count"></span></div>
-            <div id="high-priority-tasks"></div>
-          </div>
+        <div id="today-section">
+          <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
+          <div id="today-tasks"></div>
         </div>
         <div>
           <div class="section-title">Nächste 7 Tage <span id="week-count" class="count"></span></div>
@@ -1077,6 +1075,14 @@ function renderHeute() {
     $('today-tasks').innerHTML = sortedToday.map(t => taskHTML(t)).join('');
   } else {
     $('today-section').style.display = 'none';
+  }
+
+  // Update grid columns based on whether today-section is visible
+  const heuteGrid = document.querySelector('.heute-columns');
+  if (sortedToday.length) {
+    heuteGrid.style.gridTemplateColumns = '';
+  } else {
+    heuteGrid.style.gridTemplateColumns = '1fr';
   }
 
   // High-priority section
