@@ -25,7 +25,8 @@
 <meta name="apple-mobile-web-app-title" content="Markus Dashboard">
 <meta name="theme-color" content="#F2F2F7">
 <title>Markus Dashboard</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTWFya3VzIERhc2hib2FyZCIsInNob3J0X25hbWUiOiJEYXNoYm9hcmQiLCJzdGFydF91cmwiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNGMkYyRjciLCJ0aGVtZV9jb2xvciI6IiNGMkYyRjciLCJpY29ucyI6W119Cg==">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIk1hcmt1cyBEYXNoYm9hcmQiLCAic2hvcnRfbmFtZSI6ICJNYXJrdXMgSHViIiwgInN0YXJ0X3VybCI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjRjJGMkY3IiwgInRoZW1lX2NvbG9yIjogIiNGMkYyRjciLCAiaWNvbnMiOiBbeyJzcmMiOiAiaWNvbi0xOTIucG5nIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9wbmcifV19">
+<link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ===================== CSS Reset & Variables ===================== */
@@ -170,17 +171,18 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 
 /* -- Filter Tabs -- */
 .filter-tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
-.filter-tab{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;background:var(--card);color:var(--text2);border:none;box-shadow:var(--shadow);transition:all .2s;min-height:36px}
+.filter-tab{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;background:var(--card);color:var(--text2);border:none;box-shadow:var(--shadow);transition:all .2s;min-height:36px;flex-shrink:0}
 .filter-tab.active{background:var(--accent);color:#fff}
 
 /* -- Sort Dropdown -- */
-.sort-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.sort-btn{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text2);padding:6px 10px;border-radius:8px;background:var(--card);box-shadow:var(--shadow)}
+.sort-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.sort-bar .filter-tabs{flex:1;min-width:0;margin-bottom:0}
+.sort-btn{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text2);padding:6px 10px;border-radius:8px;background:var(--card);box-shadow:var(--shadow);flex-shrink:0}
 .sort-btn svg{width:14px;height:14px;stroke:var(--text2);fill:none;stroke-width:2}
 
 /* -- Projects Grid -- */
-.projects-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.project-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s}
+.projects-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:2px}
+.project-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s;min-width:0;overflow:hidden}
 .project-card:active{transform:scale(.97)}
 .project-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .project-name{font-size:14px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
