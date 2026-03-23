@@ -404,8 +404,10 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
       <div class="stats-row" id="heute-stats"></div>
       <div class="heute-columns">
         <div>
-          <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
-          <div id="today-tasks"></div>
+          <div id="today-section">
+            <div class="section-title">Heute fällig <span id="today-count" class="count"></span></div>
+            <div id="today-tasks"></div>
+          </div>
           <div id="high-priority-section" style="margin-top:20px;display:none">
             <div class="section-title">🔴 Hohe Priorität <span id="high-priority-count" class="count"></span></div>
             <div id="high-priority-tasks"></div>
@@ -1070,9 +1072,12 @@ function renderHeute() {
   $('week-count').textContent = weekTasks.length;
 
   const sortedToday = [...todayTasks].sort(prioritySorter);
-  $('today-tasks').innerHTML = sortedToday.length
-    ? sortedToday.map(t => taskHTML(t)).join('')
-    : '<div class="empty"><div class="empty-icon">✅</div><h3>Alles erledigt!</h3><p>Keine Tasks für heute</p></div>';
+  if (sortedToday.length) {
+    $('today-section').style.display = '';
+    $('today-tasks').innerHTML = sortedToday.map(t => taskHTML(t)).join('');
+  } else {
+    $('today-section').style.display = 'none';
+  }
 
   // High-priority section
   const hpSection = $('high-priority-section');
