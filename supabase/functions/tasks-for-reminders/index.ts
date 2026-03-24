@@ -25,6 +25,36 @@ serve(async (req) => {
     return new Response(`Reset ${data?.length || 0} tasks`)
   }
 
+  if (action === 'dedup') {
+    const { data: all } = await sb.from('hub_tasks')
+      .select('id, title, created_at')
+      .eq('user_id', USER_ID).eq('done', false)
+      .order('created_at', { ascending: true })
+    const seen = new Map<string, string>()
+    const toDelete: string[] = []
+    for (const t of all || []) {
+      if (seen.has(t.title)) {
+        toDelete.push(t.id)
+      } else {
+        seen.set(t.title, t.id)
+      }
+    }
+    if (toDelete.length) {
+      await sb.from('hub_tasks').delete().in('id', toDelete)
+    }
+    return new Response(`Deleted ${toDelete.length} duplicates`)
+  }
+
+  if (action === 'delete') {
+    const title = url.searchParams.get('title')
+    if (title) {
+      const { data } = await sb.from('hub_tasks').delete()
+        .eq('user_id', USER_ID).eq('title', title).eq('done', false).select('id')
+      return new Response(`Deleted ${data?.length || 0} tasks with title "${title}"`)
+    }
+    return new Response('Missing ?title=')
+  }
+
   if (action === 'mark') {
     const { data } = await sb.from('hub_tasks')
       .update({ external_id: 'reminder-synced', source: 'hub' })
