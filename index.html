@@ -1506,6 +1506,9 @@ function fmtNote(s) {
   if (inUl) html += '</ul>';
   if (inOl) html += '</ol>';
   if (inCheck) html += '</ul>';
+  // Render markdown bold/italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
   return html;
 }
 
@@ -2630,6 +2633,9 @@ function textToHTML(text) {
   }
   if (inUl) html += '</ul>';
   if (inCheck) html += '</ul>';
+  // Convert markdown bold/italic to HTML for editor
+  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  html = html.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<i>$1</i>');
   return html;
 }
 
@@ -2646,6 +2652,13 @@ function htmlToText(html) {
       return (checked ? '[x] ' : '[ ] ') + li.textContent.trim();
     }).join('\n');
     ul.replaceWith(document.createTextNode(text));
+  });
+  // Convert bold/italic to markdown before stripping HTML
+  div.querySelectorAll('b, strong').forEach(el => {
+    el.replaceWith(document.createTextNode('**' + el.textContent + '**'));
+  });
+  div.querySelectorAll('i, em').forEach(el => {
+    el.replaceWith(document.createTextNode('*' + el.textContent + '*'));
   });
   // Process regular lists
   div.querySelectorAll('ul').forEach(ul => {
