@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.apple-sync]
 verify_jwt = false
+
+[functions.tasks-for-reminders]
+verify_jwt = false
