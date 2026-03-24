@@ -1,0 +1,11 @@
+[functions.gmail-oauth-start]
+verify_jwt = false
+
+[functions.gmail-oauth-callback]
+verify_jwt = false
+
+[functions.email-agent]
+verify_jwt = true
+
+[functions.task-capture]
+verify_jwt = false
