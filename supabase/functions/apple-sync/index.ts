@@ -48,15 +48,14 @@ async function caldavRequest(url: string, method: string, body: string, depth = 
 // ── Parse iCal helpers ──────────────────────────────────────────────────────
 
 function icalValue(ical: string, key: string): string | null {
-  // Handles both "KEY:value" and "KEY;PARAM=...:value"
+  // Handles "KEY:value", "KEY;PARAM=val:value", and multi-line folding
   const regex = new RegExp(`^${key}[;:](.*)$`, 'm')
   const m = ical.match(regex)
   if (!m) return null
   let val = m[1]
-  // Strip parameters (e.g., TZID=...:actualvalue)
-  const colonIdx = val.indexOf(':')
-  if (key !== 'DESCRIPTION' && colonIdx > -1 && val.includes('=')) {
-    val = val.substring(colonIdx + 1)
+  // For DTSTART/DTEND with TZID: "TZID=Europe/Vienna:20260324T163000" → take after last colon
+  if ((key === 'DTSTART' || key === 'DTEND' || key === 'DUE') && val.includes('=') && val.includes(':')) {
+    val = val.substring(val.lastIndexOf(':') + 1)
   }
   return val.replace(/\\n/g, '\n').replace(/\\,/g, ',').trim()
 }
@@ -150,7 +149,7 @@ function parseCalendarResponse(xml: string, calName: string): CalEvent[] {
                       block.match(/<cal:calendar-data[^>]*>([\s\S]*?)<\/cal:calendar-data/i) ||
                       block.match(/<C:calendar-data[^>]*>([\s\S]*?)<\/C:calendar-data/i)
     if (!dataMatch) continue
-    const ical = dataMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    let ical = dataMatch[1].replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     const uid = extractUid(ical)
     if (!uid) continue
 
@@ -251,7 +250,7 @@ function parseRemindersResponse(xml: string, listName: string): Reminder[] {
                       block.match(/<cal:calendar-data[^>]*>([\s\S]*?)<\/cal:calendar-data/i) ||
                       block.match(/<C:calendar-data[^>]*>([\s\S]*?)<\/C:calendar-data/i)
     if (!dataMatch) continue
-    const ical = dataMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    let ical = dataMatch[1].replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     const uid = extractUid(ical)
     if (!uid) continue
 
@@ -323,6 +322,25 @@ async function importReminder(r: Reminder): Promise<boolean> {
   return !error
 }
 
+async function cleanupOldExports(): Promise<void> {
+  // Delete old @markus-hub VTODOs and reset external_ids so they get re-exported with proper format
+  const { data: oldTasks } = await sb.from('hub_tasks')
+    .select('id, external_id')
+    .eq('user_id', USER_ID)
+    .like('external_id', '%@markus-hub')
+
+  if (!oldTasks?.length) return
+  const listPath = REMINDER_LISTS[0].path
+  for (const task of oldTasks) {
+    // Delete old VTODO from CalDAV
+    const url = `${CALDAV_BASE}${CALENDAR_HOME}${listPath}/${task.external_id}.ics`
+    try { await fetch(url, { method: 'DELETE', headers: { 'Authorization': authHeader } }) } catch {}
+    // Reset external_id
+    await sb.from('hub_tasks').update({ external_id: null, source: 'manual' }).eq('id', task.id)
+  }
+  console.log(`Cleaned up ${oldTasks.length} old exports`)
+}
+
 async function exportNewTasks(): Promise<number> {
   // Find hub tasks without external_id that were created manually (source = manual or null)
   const { data: tasks } = await sb.from('hub_tasks')
@@ -339,30 +357,23 @@ async function exportNewTasks(): Promise<number> {
   const listPath = REMINDER_LISTS[0].path // Export to "Aufgaben" list
 
   for (const task of tasks) {
-    const uid = crypto.randomUUID() + '@markus-hub'
+    const uid = crypto.randomUUID().toUpperCase()
     const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '').replace('Z', '') + 'Z'
-    let vtodo = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Markus Hub//NONSGML v1.0//EN
-BEGIN:VTODO
-UID:${uid}
-DTSTAMP:${now}
-CREATED:${now}
-SUMMARY:${task.title.replace(/,/g, '\\,').replace(/\n/g, '\\n')}
-STATUS:NEEDS-ACTION`
+    let vtodo = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Apple Inc.//Markus Hub 1.0//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VTODO\r\nUID:${uid}\r\nDTSTAMP:${now}\r\nCREATED:${now}\r\nLAST-MODIFIED:${now}\r\nSUMMARY:${task.title.replace(/,/g, '\\,').replace(/\n/g, '\\n')}\r\nSTATUS:NEEDS-ACTION\r\nSEQUENCE:0`
 
     if (task.description) {
-      vtodo += `\nDESCRIPTION:${task.description.replace(/,/g, '\\,').replace(/\n/g, '\\n')}`
+      vtodo += `\r\nDESCRIPTION:${task.description.replace(/,/g, '\\,').replace(/\n/g, '\\n')}`
     }
     if (task.due_date) {
-      vtodo += `\nDUE;VALUE=DATE:${task.due_date.replace(/-/g, '')}`
+      vtodo += `\r\nDUE;VALUE=DATE:${task.due_date.replace(/-/g, '')}`
     }
-    if (task.priority === 'high') vtodo += '\nPRIORITY:1'
-    else if (task.priority === 'low') vtodo += '\nPRIORITY:9'
+    if (task.priority === 'high') vtodo += '\r\nPRIORITY:1'
+    else if (task.priority === 'low') vtodo += '\r\nPRIORITY:9'
 
-    vtodo += `\nEND:VTODO\nEND:VCALENDAR`
+    vtodo += `\r\nEND:VTODO\r\nEND:VCALENDAR`
 
-    const url = `${CALDAV_BASE}${CALENDAR_HOME}${listPath}/${uid}.ics`
+    const filename = `${uid}.ics`
+    const url = `${CALDAV_BASE}${CALENDAR_HOME}${listPath}/${filename}`
     try {
       const res = await fetch(url, {
         method: 'PUT',
