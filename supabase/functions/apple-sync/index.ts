@@ -284,7 +284,7 @@ function parseRemindersResponse(xml: string, listName: string): Reminder[] {
 }
 
 async function importReminder(r: Reminder): Promise<boolean> {
-  // Check if already imported
+  // Check if already imported by external_id
   const { data: existing } = await sb.from('hub_tasks')
     .select('id, done')
     .eq('user_id', USER_ID)
@@ -300,6 +300,20 @@ async function importReminder(r: Reminder): Promise<boolean> {
         updated_at: new Date().toISOString(),
       }).eq('id', existing.id)
     }
+    return false
+  }
+
+  // Check if a task with the same title already exists (e.g. exported via Shortcut)
+  const { data: byTitle } = await sb.from('hub_tasks')
+    .select('id')
+    .eq('user_id', USER_ID)
+    .eq('title', r.title)
+    .eq('done', false)
+    .maybeSingle()
+
+  if (byTitle) {
+    // Link existing task to this reminder UID (prevent future duplicates)
+    await sb.from('hub_tasks').update({ external_id: r.uid, source: 'apple_reminders' }).eq('id', byTitle.id)
     return false
   }
 
