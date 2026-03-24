@@ -133,6 +133,14 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 .briefing-item .bi-date{font-size:12px;color:var(--text2);margin-left:auto;flex-shrink:0}
 .briefing-empty{color:var(--text3);font-size:13px;font-style:italic}
 
+/* ===================== Calendar Events ===================== */
+.cal-item{background:var(--card);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:8px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}
+.cal-dot{width:10px;height:10px;border-radius:5px;flex-shrink:0}
+.cal-item .cal-body{flex:1;min-width:0}
+.cal-item .cal-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-item .cal-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.cal-item .cal-time{font-size:13px;font-weight:500;color:var(--text);flex-shrink:0}
+
 /* ===================== Empty State ===================== */
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;text-align:center}
 .empty-icon{font-size:48px;margin-bottom:16px;opacity:.6}
@@ -450,6 +458,14 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
           <div class="section-title">Nächste 7 Tage <span id="week-count" class="count"></span></div>
           <div id="week-tasks"></div>
         </div>
+      </div>
+      <div id="cal-today-section" style="display:none;margin-top:20px">
+        <div class="section-title">📅 Termine heute <span id="cal-today-count" class="count"></span></div>
+        <div id="cal-today-events"></div>
+      </div>
+      <div id="cal-upcoming-section" style="display:none;margin-top:16px">
+        <div class="section-title">Kommende Termine <span id="cal-upcoming-count" class="count"></span></div>
+        <div id="cal-upcoming-events"></div>
       </div>
     </div>
 
@@ -841,6 +857,7 @@ let projects = [];
 let entries = [];
 let notes = [];
 let meetings = [];
+let calendarEvents = [];
 let userProfile = { openai_key: '', anthropic_key: '' };
 let currentTab = 'heute';
 let taskFilter = 'alle';
@@ -919,6 +936,23 @@ function showBriefing(auto) {
   }
   if (upcomingProjects.length) {
     html += `<div class="briefing-section"><h3>Projekte <span class="count green">${upcomingProjects.length}</span></h3>${upcomingProjects.sort((a,b) => (a.next_date||'').localeCompare(b.next_date||'')).map(p => `<div class="briefing-item"><div class="bi-dot" style="background:var(--green)"></div><span>${esc(p.name)}</span><span class="bi-date">${p.next_date === td ? 'Heute' : fmtDate(p.next_date)}</span></div>`).join('')}</div>`;
+  }
+  // Calendar events in briefing
+  const briefingCalToday = calendarEvents.filter(e => (e.start_at?.split('T')[0] || e.start_at) === td);
+  const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1);
+  const tmrwStr = tmrw.toISOString().split('T')[0];
+  const briefingCalTomorrow = calendarEvents.filter(e => (e.start_at?.split('T')[0] || e.start_at) === tmrwStr);
+  if (briefingCalToday.length) {
+    html += `<div class="briefing-section"><h3>📅 Termine heute <span class="count blue">${briefingCalToday.length}</span></h3>${briefingCalToday.sort((a,b) => (a.start_at||'').localeCompare(b.start_at||'')).map(e => {
+      const time = e.all_day ? 'Ganztägig' : (e.start_at?.split('T')[1]?.slice(0,5) || '');
+      return `<div class="briefing-item"><div class="bi-dot" style="background:var(--accent)"></div><span>${esc(e.title)}</span><span class="bi-date">${time}</span></div>`;
+    }).join('')}</div>`;
+  }
+  if (briefingCalTomorrow.length) {
+    html += `<div class="briefing-section"><h3>📅 Morgen <span class="count blue">${briefingCalTomorrow.length}</span></h3>${briefingCalTomorrow.sort((a,b) => (a.start_at||'').localeCompare(b.start_at||'')).map(e => {
+      const time = e.all_day ? 'Ganztägig' : (e.start_at?.split('T')[1]?.slice(0,5) || '');
+      return `<div class="briefing-item"><div class="bi-dot" style="background:var(--accent)"></div><span>${esc(e.title)}</span><span class="bi-date">${time}</span></div>`;
+    }).join('')}</div>`;
   }
   if (!html) {
     html = `<div class="briefing-section" style="text-align:center;padding:24px 16px"><div style="font-size:32px;margin-bottom:12px">✅</div><div style="font-size:16px;font-weight:600;margin-bottom:4px">Alles klar!</div><div style="font-size:14px;color:var(--text2)">Keine offenen Deadlines oder Termine — genieß den Tag.</div></div>`;
@@ -1028,8 +1062,14 @@ initSession();
 
 // ── Data Loading ──
 async function loadAll() {
-  await Promise.all([loadTasks(), loadProjects(), loadNotes(), loadMeetings(), loadProfile()]);
+  await Promise.all([loadTasks(), loadProjects(), loadNotes(), loadMeetings(), loadProfile(), loadCalendarEvents()]);
   renderCurrentView();
+}
+
+async function loadCalendarEvents() {
+  const { data, error } = await sb.from('hub_calendar_events').select('*').eq('user_id', currentUser.id).order('start_at', { ascending: true });
+  if (error) console.error('[loadCalendarEvents]', error);
+  calendarEvents = data || [];
 }
 
 async function loadTasks() {
@@ -1221,6 +1261,61 @@ function renderHeute() {
   $('week-tasks').innerHTML = combined.length
     ? combined.map(t => taskHTML(t)).join('')
     : '<div class="empty"><p style="color:var(--text3)">Keine anstehenden Deadlines</p></div>';
+
+  // Calendar events
+  renderCalendarInHeute();
+}
+
+function renderCalendarInHeute() {
+  const td = today();
+  const calColors = { 'Privat':'#2961A5', 'Arbeit':'#51B2D2', 'Events (Arbeit Markus)':'#4E7A27', 'Turniere':'#054C1C', '👫🏼':'#FF9500', 'Büro (Sandra)':'#FFCC00' };
+  const calToday = calendarEvents.filter(e => {
+    const d = e.start_at?.split('T')[0] || e.start_at;
+    return d === td;
+  }).sort((a,b) => (a.start_at||'').localeCompare(b.start_at||''));
+
+  const in3Days = new Date(); in3Days.setDate(in3Days.getDate() + 3);
+  const in3Str = in3Days.toISOString().split('T')[0];
+  const calUpcoming = calendarEvents.filter(e => {
+    const d = e.start_at?.split('T')[0] || e.start_at;
+    return d > td && d <= in3Str;
+  }).sort((a,b) => (a.start_at||'').localeCompare(b.start_at||''));
+
+  if (calToday.length) {
+    $('cal-today-section').style.display = '';
+    $('cal-today-count').textContent = calToday.length;
+    $('cal-today-events').innerHTML = calToday.map(e => calEventHTML(e, calColors)).join('');
+  } else {
+    $('cal-today-section').style.display = 'none';
+  }
+
+  if (calUpcoming.length) {
+    $('cal-upcoming-section').style.display = '';
+    $('cal-upcoming-count').textContent = calUpcoming.length;
+    $('cal-upcoming-events').innerHTML = calUpcoming.map(e => calEventHTML(e, calColors, true)).join('');
+  } else {
+    $('cal-upcoming-section').style.display = 'none';
+  }
+}
+
+function calEventHTML(e, colors, showDate) {
+  const color = colors[e.calendar_name] || 'var(--accent)';
+  let timeStr = '';
+  if (e.all_day) {
+    timeStr = 'Ganztägig';
+  } else if (e.start_at?.includes('T')) {
+    const h = e.start_at.split('T')[1]?.slice(0, 5);
+    timeStr = h || '';
+  }
+  const datePrefix = showDate ? `<span style="color:var(--text3)">${fmtDate((e.start_at?.split('T')[0])||e.start_at)} · </span>` : '';
+  return `<div class="cal-item">
+    <div class="cal-dot" style="background:${color}"></div>
+    <div class="cal-body">
+      <div class="cal-title">${esc(e.title)}</div>
+      <div class="cal-meta">${datePrefix}${esc(e.calendar_name)}${e.location ? ' · ' + esc(e.location) : ''}</div>
+    </div>
+    <div class="cal-time">${timeStr}</div>
+  </div>`;
 }
 
 function showOverdueTasks() {
