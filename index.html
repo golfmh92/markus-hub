@@ -1156,6 +1156,7 @@ async function initSession() {
     await loadAll();
     checkMorningBriefing();
     initPush();
+    initRealtime();
   }
 
   // Then listen for changes (login, logout, token refresh)
@@ -1170,7 +1171,8 @@ async function initSession() {
         await loadCategories();
         await loadAll();
         checkMorningBriefing();
-    initPush();
+        initPush();
+        initRealtime();
       }
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;
@@ -1180,6 +1182,28 @@ async function initSession() {
   });
 }
 initSession();
+
+// ── Realtime Subscriptions ──
+function initRealtime() {
+  sb.channel('hub-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_tasks', filter: `user_id=eq.${currentUser.id}` }, async () => {
+      await loadTasks();
+      renderCurrentView();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_notes', filter: `user_id=eq.${currentUser.id}` }, async () => {
+      await loadNotes();
+      renderCurrentView();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_projects', filter: `user_id=eq.${currentUser.id}` }, async () => {
+      await loadProjects();
+      renderCurrentView();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_calendar_events', filter: `user_id=eq.${currentUser.id}` }, async () => {
+      await loadCalendarEvents();
+      renderCurrentView();
+    })
+    .subscribe()
+}
 
 // ── Data Loading ──
 async function loadAll() {
