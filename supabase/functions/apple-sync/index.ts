@@ -224,10 +224,10 @@ async function syncReminders() {
     }
   }
 
-  // 2. Hub → Apple: push unsynced hub tasks to first reminder list
-  exported = await exportNewTasks()
+  // Hub → Apple export disabled: using Shortcuts "Hub Sync" instead
+  // (CalDAV PUT doesn't trigger Apple device push sync)
 
-  return { imported, exported }
+  return { imported, exported: 0 }
 }
 
 interface Reminder {

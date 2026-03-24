@@ -131,10 +131,17 @@ serve(async (req) => {
   }
 
   // Default (cron every 15 min): only calendar event reminders (30 min before)
+  // Events are stored in local time (Europe/Vienna), so we need local time for comparison
   const now = new Date()
-  const soon = new Date(now.getTime() + 30 * 60000)
-  const nowStr = now.toISOString().replace('Z', '').slice(0, 16)
-  const soonStr = soon.toISOString().replace('Z', '').slice(0, 16)
+  const viennaOffset = 1 // CET=+1, CEST=+2 — approximate with +1 for simplicity
+  // Check if DST (last Sunday of March to last Sunday of October)
+  const month = now.getUTCMonth()
+  const isDST = month >= 2 && month <= 9 // rough March-October
+  const offsetHours = isDST ? 2 : 1
+  const localNow = new Date(now.getTime() + offsetHours * 3600000)
+  const localSoon = new Date(localNow.getTime() + 30 * 60000)
+  const nowStr = localNow.toISOString().replace('Z', '').slice(0, 16)
+  const soonStr = localSoon.toISOString().replace('Z', '').slice(0, 16)
 
   const { data: allCronEvents } = await sb.from('hub_calendar_events')
     .select('title, start_at, calendar_name, location')
