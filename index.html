@@ -2733,6 +2733,8 @@ function textToHTML(text) {
 function htmlToText(html) {
   const div = document.createElement('div');
   div.innerHTML = html;
+  // Remove calc hints
+  div.querySelectorAll('.calc-hint').forEach(h => h.remove());
   // Process checklists
   div.querySelectorAll('ul.note-checklist').forEach(ul => {
     const items = ul.querySelectorAll('li');
@@ -2741,7 +2743,7 @@ function htmlToText(html) {
       const checked = cb ? cb.checked : li.classList.contains('checked');
       return (checked ? '[x] ' : '[ ] ') + li.textContent.trim();
     }).join('\n');
-    ul.replaceWith(document.createTextNode(text));
+    ul.replaceWith(document.createTextNode('\n' + text + '\n'));
   });
   // Convert bold/italic to markdown before stripping HTML
   div.querySelectorAll('b, strong').forEach(el => {
@@ -2754,14 +2756,20 @@ function htmlToText(html) {
   div.querySelectorAll('ul').forEach(ul => {
     const items = ul.querySelectorAll('li');
     const text = Array.from(items).map(li => '- ' + li.textContent.trim()).join('\n');
-    ul.replaceWith(document.createTextNode(text));
+    ul.replaceWith(document.createTextNode('\n' + text + '\n'));
   });
   div.querySelectorAll('ol').forEach(ol => {
     const items = ol.querySelectorAll('li');
     const text = Array.from(items).map((li, i) => (i+1) + '. ' + li.textContent.trim()).join('\n');
-    ol.replaceWith(document.createTextNode(text));
+    ol.replaceWith(document.createTextNode('\n' + text + '\n'));
   });
-  return div.innerText.trim();
+  // Insert newlines before block elements (div, p, br)
+  div.querySelectorAll('br').forEach(br => br.replaceWith(document.createTextNode('\n')));
+  div.querySelectorAll('div, p').forEach(block => {
+    block.insertAdjacentText('beforebegin', '\n');
+  });
+  // Extract text and clean up multiple blank lines
+  return div.innerText.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function openNoteModal(editId) {
