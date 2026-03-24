@@ -2601,6 +2601,27 @@ function setNoteHTML(html) { $('nm-content').innerHTML = html || ''; }
 
 // Handle Enter in checklist to add new checkbox item
 $('nm-content').addEventListener('keydown', function(e) {
+  // Tab to accept calc hint
+  if (e.key === 'Tab') {
+    const hint = this.querySelector('.calc-hint');
+    if (hint) {
+      e.preventDefault();
+      const text = hint.dataset.result;
+      hint.remove();
+      // Insert "= result" as real text at cursor
+      const sel = window.getSelection();
+      if (sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        const node = document.createTextNode(' = ' + text);
+        range.insertNode(node);
+        range.setStartAfter(node);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+      return;
+    }
+  }
   if (e.key !== 'Enter') return;
   const sel = window.getSelection();
   if (!sel.rangeCount) return;
@@ -2619,6 +2640,33 @@ $('nm-content').addEventListener('keydown', function(e) {
   range.collapse(true);
   sel.removeAllRanges();
   sel.addRange(range);
+});
+
+// Live calc hints in editor
+$('nm-content').addEventListener('input', function() {
+  // Remove old hints
+  this.querySelectorAll('.calc-hint').forEach(h => h.remove());
+  // Get current line text
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const node = sel.anchorNode;
+  if (!node || node.nodeType !== 3) return;
+  const lineText = node.textContent.trim();
+  if (!lineText || lineText.includes('=')) return;
+  const result = calcExpr(lineText);
+  if (result === null) return;
+  // Insert ghost hint
+  const hint = document.createElement('span');
+  hint.className = 'calc-hint';
+  hint.dataset.result = result;
+  hint.textContent = ' = ' + result;
+  hint.style.cssText = 'color:var(--text3);font-style:italic;pointer-events:none;user-select:none';
+  // Insert after the text node
+  if (node.nextSibling) {
+    node.parentNode.insertBefore(hint, node.nextSibling);
+  } else {
+    node.parentNode.appendChild(hint);
+  }
 });
 
 function insertNoteCheckbox() {
