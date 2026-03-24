@@ -443,6 +443,14 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
         <button class="btn btn-sm btn-secondary" onclick="showBriefing(false)" style="flex-shrink:0" title="Briefing öffnen">☀️ Briefing</button>
       </div>
       <div class="stats-row" id="heute-stats"></div>
+      <div id="cal-today-section" style="display:none;margin-bottom:20px">
+        <div class="section-title">📅 Termine heute <span id="cal-today-count" class="count"></span></div>
+        <div id="cal-today-events"></div>
+      </div>
+      <div id="cal-upcoming-section" style="display:none;margin-bottom:20px">
+        <div class="section-title">Kommende Termine <span id="cal-upcoming-count" class="count"></span></div>
+        <div id="cal-upcoming-events"></div>
+      </div>
       <div class="heute-columns">
         <div>
           <div id="today-section">
@@ -458,14 +466,6 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
           <div class="section-title">Nächste 7 Tage <span id="week-count" class="count"></span></div>
           <div id="week-tasks"></div>
         </div>
-      </div>
-      <div id="cal-today-section" style="display:none;margin-top:20px">
-        <div class="section-title">📅 Termine heute <span id="cal-today-count" class="count"></span></div>
-        <div id="cal-today-events"></div>
-      </div>
-      <div id="cal-upcoming-section" style="display:none;margin-top:16px">
-        <div class="section-title">Kommende Termine <span id="cal-upcoming-count" class="count"></span></div>
-        <div id="cal-upcoming-events"></div>
       </div>
     </div>
 
