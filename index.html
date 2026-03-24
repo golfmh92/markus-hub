@@ -1509,7 +1509,49 @@ function fmtNote(s) {
   // Render markdown bold/italic
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
+  // Inline calculations
+  html = html.replace(/^(.+?)\s*=\s*\?\s*$/gm, (_, expr) => {
+    const result = calcExpr(expr);
+    return result !== null ? `${expr} <span style="color:var(--accent);font-weight:600">= ${result}</span>` : expr + ' = ?';
+  });
+  // Auto-detect math lines without "= ?"
+  html = html.replace(/^([\d.,]+\s*[%]\s*von\s*[\d.,]+\s*[€$]?)$/gim, (_, expr) => {
+    const result = calcExpr(expr);
+    return result !== null ? `${expr} <span style="color:var(--accent);font-weight:600">= ${result}</span>` : expr;
+  });
+  html = html.replace(/^([\d.,]+\s*[€$]?\s*[+\-*/x×÷]\s*[\d.,]+\s*[€$]?)$/gm, (_, expr) => {
+    const result = calcExpr(expr);
+    return result !== null ? `${expr} <span style="color:var(--accent);font-weight:600">= ${result}</span>` : expr;
+  });
   return html;
+}
+
+function calcExpr(expr) {
+  try {
+    let s = expr.trim();
+    const hasCurrency = /[€$]/.test(s);
+    const curr = hasCurrency ? (s.includes('€') ? '€' : '$') : '';
+    s = s.replace(/[€$]/g, '').trim();
+    // "30% von 90" → 90 * 0.30
+    const pctMatch = s.match(/^([\d.,]+)\s*%\s*von\s*([\d.,]+)$/i);
+    if (pctMatch) {
+      const pct = parseFloat(pctMatch[1].replace(',', '.'));
+      const base = parseFloat(pctMatch[2].replace(',', '.'));
+      const result = base * pct / 100;
+      return fmtCalcNum(result) + curr;
+    }
+    // Basic math: "150 + 200", "1200 / 4", "50 x 3"
+    s = s.replace(/x/gi, '*').replace(/×/g, '*').replace(/÷/g, '/').replace(/,/g, '.');
+    // Only allow safe chars
+    if (!/^[\d.+\-*/() ]+$/.test(s)) return null;
+    const result = Function('"use strict"; return (' + s + ')')();
+    if (typeof result !== 'number' || !isFinite(result)) return null;
+    return fmtCalcNum(result) + curr;
+  } catch { return null; }
+}
+
+function fmtCalcNum(n) {
+  return n % 1 === 0 ? n.toLocaleString('de-DE') : n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ── Render: Tasks ──
