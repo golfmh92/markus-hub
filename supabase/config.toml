@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.tasks-for-reminders]
 verify_jwt = false
+
+[functions.push-notify]
+verify_jwt = false

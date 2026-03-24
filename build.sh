@@ -9,5 +9,7 @@ sed \
   index.html > dist/index.html
 
 cp icon-192.png dist/
+cp sw.js dist/
+cp manifest.json dist/
 
 echo "Build complete: dist/"

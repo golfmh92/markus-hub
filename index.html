@@ -25,7 +25,7 @@
 <meta name="apple-mobile-web-app-title" content="Markus Dashboard">
 <meta name="theme-color" content="#F2F2F7">
 <title>Markus Dashboard</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIk1hcmt1cyBEYXNoYm9hcmQiLCAic2hvcnRfbmFtZSI6ICJNYXJrdXMgSHViIiwgInN0YXJ0X3VybCI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjRjJGMkY3IiwgInRoZW1lX2NvbG9yIjogIiNGMkYyRjciLCAiaWNvbnMiOiBbeyJzcmMiOiAiaWNvbi0xOTIucG5nIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9wbmcifV19">
+<link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -601,6 +601,13 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
         <button class="btn btn-primary btn-sm" onclick="addCategory()">+</button>
       </div>
       <div style="margin-top:24px">
+        <div class="section-title">Benachrichtigungen</div>
+        <div id="push-section" style="background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:24px">
+          <div id="push-status" style="font-size:14px;margin-bottom:12px;color:var(--text2)">Lade...</div>
+          <button id="push-btn" class="btn btn-primary" style="width:100%" onclick="togglePush()">Push aktivieren</button>
+        </div>
+      </div>
+      <div style="margin-top:24px">
         <div class="section-title">KI-Integration</div>
         <div style="background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)">
           <div class="form-group">
@@ -881,6 +888,7 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
 // ── Supabase Init ──
 const SUPA_URL = '__SUPA_URL__';
 const SUPA_KEY = '__SUPA_KEY__';
+const VAPID_PUBLIC_KEY = 'BK175YA9RJrizyS0Jdwz3bsU35oE1VU_x3KKIPZ5PTe3EXVGCCa7T-quDvQ_NJ-zkcQmGy6ZEOCasQr-8VpoRGg';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
   auth: { flowType: 'implicit', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
 });
@@ -1058,6 +1066,82 @@ async function logout() {
   location.reload();
 }
 
+// ── Push Notifications ──
+let pushSubscription = null;
+
+async function initPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    $('push-status').textContent = 'Push wird von diesem Browser nicht unterstützt';
+    $('push-btn').style.display = 'none';
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.register('sw.js');
+    pushSubscription = await reg.pushManager.getSubscription();
+    updatePushUI();
+  } catch(e) {
+    $('push-status').textContent = 'Service Worker Fehler: ' + e.message;
+  }
+}
+
+function updatePushUI() {
+  if (pushSubscription) {
+    $('push-status').textContent = 'Push-Benachrichtigungen sind aktiv';
+    $('push-status').style.color = 'var(--green)';
+    $('push-btn').textContent = 'Push deaktivieren';
+    $('push-btn').className = 'btn btn-danger';
+  } else {
+    $('push-status').textContent = 'Push-Benachrichtigungen sind deaktiviert';
+    $('push-status').style.color = 'var(--text2)';
+    $('push-btn').textContent = 'Push aktivieren';
+    $('push-btn').className = 'btn btn-primary';
+  }
+  $('push-btn').style.width = '100%';
+}
+
+async function togglePush() {
+  if (pushSubscription) {
+    await pushSubscription.unsubscribe();
+    // Remove from DB
+    await sb.from('hub_push_subscriptions').delete().eq('endpoint', pushSubscription.endpoint);
+    pushSubscription = null;
+    updatePushUI();
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      $('push-status').textContent = 'Berechtigung verweigert. Bitte in den Einstellungen aktivieren.';
+      $('push-status').style.color = 'var(--red)';
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    pushSubscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    const key = pushSubscription.getKey('p256dh');
+    const auth = pushSubscription.getKey('auth');
+    await sb.from('hub_push_subscriptions').upsert({
+      user_id: currentUser.id,
+      endpoint: pushSubscription.endpoint,
+      p256dh: btoa(String.fromCharCode(...new Uint8Array(key))),
+      auth: btoa(String.fromCharCode(...new Uint8Array(auth))),
+    }, { onConflict: 'endpoint' });
+    updatePushUI();
+  } catch(e) {
+    $('push-status').textContent = 'Fehler: ' + e.message;
+    $('push-status').style.color = 'var(--red)';
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
 // ── Session ──
 async function initSession() {
   // First check for existing session
@@ -1071,6 +1155,7 @@ async function initSession() {
     await loadCategories();
     await loadAll();
     checkMorningBriefing();
+    initPush();
   }
 
   // Then listen for changes (login, logout, token refresh)
@@ -1085,6 +1170,7 @@ async function initSession() {
         await loadCategories();
         await loadAll();
         checkMorningBriefing();
+    initPush();
       }
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;

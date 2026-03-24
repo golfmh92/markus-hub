@@ -11,50 +11,41 @@ const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 serve(async (req) => {
   const auth = req.headers.get('Authorization')
   if (auth !== `Bearer ${CAPTURE_SECRET}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+    return new Response('Unauthorized', { status: 401 })
   }
 
   const url = new URL(req.url)
-  const action = url.searchParams.get('action') || req.method
+  const action = url.searchParams.get('action')
 
-  // GET: Return unsynced tasks for the Shortcut to create as Reminders
-  if (action === 'GET' || req.method === 'GET') {
-    const { data: tasks } = await sb.from('hub_tasks')
-      .select('id, title, description, priority, due_date, category')
-      .eq('user_id', USER_ID)
-      .eq('done', false)
-      .is('external_id', null)
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    return new Response(JSON.stringify(tasks || []), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+  if (action === 'reset') {
+    const { data } = await sb.from('hub_tasks')
+      .update({ external_id: null, source: 'manual' })
+      .eq('user_id', USER_ID).eq('done', false)
+      .not('external_id', 'is', null).select('id')
+    return new Response(`Reset ${data?.length || 0} tasks`)
   }
 
-  // POST: Mark tasks as synced (Shortcut calls this after creating Reminders)
-  if (action === 'mark' || req.method === 'POST') {
-    try {
-      const body = await req.json()
-      const ids: string[] = body.ids || []
-      if (!ids.length) {
-        return new Response(JSON.stringify({ ok: true, marked: 0 }), { status: 200 })
-      }
-      const { error } = await sb.from('hub_tasks')
-        .update({ external_id: 'reminder-synced', source: 'hub' })
-        .in('id', ids)
-        .eq('user_id', USER_ID)
-
-      if (error) throw error
-      return new Response(JSON.stringify({ ok: true, marked: ids.length }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    } catch (err) {
-      return new Response(JSON.stringify({ error: String(err) }), { status: 500 })
-    }
+  if (action === 'mark') {
+    const { data } = await sb.from('hub_tasks')
+      .update({ external_id: 'reminder-synced', source: 'hub' })
+      .eq('user_id', USER_ID).eq('done', false)
+      .is('external_id', null).select('id')
+    return new Response(`Marked ${data?.length || 0} tasks`)
   }
 
-  return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400 })
+  // Default: return just task titles, one per line
+  const { data: tasks } = await sb.from('hub_tasks')
+    .select('title')
+    .eq('user_id', USER_ID)
+    .eq('done', false)
+    .is('external_id', null)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (!tasks?.length) {
+    return new Response('', { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+  }
+
+  const lines = tasks.map(t => t.title).join('\n')
+  return new Response(lines, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
 })
