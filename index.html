@@ -86,6 +86,8 @@ a{color:var(--accent);text-decoration:none}
 .btn-secondary:active{opacity:.7;transform:scale(.97)}
 .btn-danger{background:rgba(255,59,48,.1);color:var(--red)}
 .btn-sm{padding:8px 16px;font-size:13px;border-radius:8px}
+.quick-date-btn{padding:4px 10px;font-size:11px;border-radius:6px;border:1px solid var(--separator);background:var(--card2);color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
+.quick-date-btn:active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn-block{width:100%}
 
 /* ===================== Form Elements ===================== */
@@ -694,6 +696,11 @@ label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-wei
       <div class="form-group">
         <label>Fällig am</label>
         <input id="tm-due" class="input" type="date">
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button type="button" class="quick-date-btn" onclick="setQuickDate(0)">Heute</button>
+          <button type="button" class="quick-date-btn" onclick="setQuickDate(1)">Morgen</button>
+          <button type="button" class="quick-date-btn" onclick="setQuickDate(7)">+1 Woche</button>
+        </div>
       </div>
       <div class="form-group">
         <label>Projekt</label>
@@ -930,6 +937,7 @@ const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().split('T')[0];
 const fmtDate = d => { if(!d) return ''; const p = d.split('-'); return `${p[2]}.${p[1]}.${p[0]}`; };
 const daysBetween = (a,b) => Math.floor((new Date(a)-new Date(b))/(86400000));
+function setQuickDate(days) { const d = new Date(); d.setDate(d.getDate()+days); $('tm-due').value = d.toISOString().split('T')[0]; }
 
 function catColor(name) {
   const c = categories.find(c => c.name === name);
