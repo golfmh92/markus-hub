@@ -73,6 +73,30 @@ export function renderToday(container) {
 
       <!-- Dashboard Grid -->
       <div class="dashboard-grid">
+        <!-- Calendar Widget (always visible) -->
+        ${calToday.length ? `
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-header-title">📅 Termine <span class="widget-header-count">${calToday.length}</span></div>
+            </div>
+            <div class="widget-body-flush">
+              ${calToday.map(e => {
+                const color = CAL_COLORS[e.calendar_name] || 'var(--accent)';
+                const time = e.all_day ? 'Ganztägig' : timeFromISO(e.start_at);
+                return `
+                  <div class="cal-event-row">
+                    <div class="cal-event-time">${time}</div>
+                    <div class="cal-event-dot" style="background:${color}"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:var(--text-sm);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.title)}</div>
+                      <div style="font-size:var(--text-xs);color:var(--text-tertiary)">${esc(e.calendar_name)}</div>
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>
+        ` : ''}
+
         ${todayFilter === 'overdue' ? `
           <!-- Filtered: Overdue only -->
           <div class="widget" style="grid-column:1/-1">
@@ -114,29 +138,6 @@ export function renderToday(container) {
 
         ` : `
           <!-- No filter: Show all widgets -->
-          ${calToday.length ? `
-            <div class="widget">
-              <div class="widget-header">
-                <div class="widget-header-title">📅 Termine <span class="widget-header-count">${calToday.length}</span></div>
-              </div>
-              <div class="widget-body-flush">
-                ${calToday.map(e => {
-                  const color = CAL_COLORS[e.calendar_name] || 'var(--accent)';
-                  const time = e.all_day ? 'Ganztägig' : timeFromISO(e.start_at);
-                  return `
-                    <div class="cal-event-row">
-                      <div class="cal-event-time">${time}</div>
-                      <div class="cal-event-dot" style="background:${color}"></div>
-                      <div style="flex:1;min-width:0">
-                        <div style="font-size:var(--text-sm);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.title)}</div>
-                        <div style="font-size:var(--text-xs);color:var(--text-tertiary)">${esc(e.calendar_name)}</div>
-                      </div>
-                    </div>`;
-                }).join('')}
-              </div>
-            </div>
-          ` : ''}
-
           ${highPrio.length ? `
             <div class="widget">
               <div class="widget-header">
