@@ -119,7 +119,7 @@ export function renderToday(container) {
           </div>
         ` : ''}
 
-        ${(!todayFilter || todayFilter === 'overdue') && overdue.length ? `
+        ${todayFilter === 'overdue' && overdue.length ? `
           <div class="widget">
             <div class="widget-header">
               <div class="widget-header-title" style="color:var(--red)">⚠ Überfällig <span class="widget-header-count">${overdue.length}</span></div>
