@@ -1,0 +1,21 @@
+{
+  "name": "loom",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.0",
+    "@tiptap/core": "^3.20.5",
+    "@tiptap/extension-placeholder": "^3.20.5",
+    "@tiptap/extension-task-item": "^3.20.5",
+    "@tiptap/extension-task-list": "^3.20.5",
+    "@tiptap/pm": "^3.20.5",
+    "@tiptap/starter-kit": "^3.20.5",
+    "vite": "^8.0.2"
+  }
+}

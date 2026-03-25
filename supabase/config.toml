@@ -1,0 +1,20 @@
+[functions.gmail-oauth-start]
+verify_jwt = false
+
+[functions.gmail-oauth-callback]
+verify_jwt = false
+
+[functions.email-agent]
+verify_jwt = true
+
+[functions.task-capture]
+verify_jwt = false
+
+[functions.apple-sync]
+verify_jwt = false
+
+[functions.tasks-for-reminders]
+verify_jwt = false
+
+[functions.push-notify]
+verify_jwt = false
