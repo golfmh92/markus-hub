@@ -12,9 +12,9 @@ export function taskHTML(t, { clickToEdit = true } = {}) {
   const priColor = t.priority === 'high' ? 'var(--red)' : t.priority === 'low' ? 'var(--text-tertiary)' : 'var(--orange)';
 
   return `
-    <div class="task-item ${t.done ? 'done' : ''}" data-task-id="${t.id}">
+    <div class="task-item ${t.done ? 'done' : ''}" data-task-id="${t.id}" ${clickToEdit ? `data-edit-task="${t.id}"` : ''}>
       <div class="task-check ${t.done ? 'checked' : ''}" data-toggle-task="${t.id}"></div>
-      <div class="task-body" ${clickToEdit ? `data-edit-task="${t.id}"` : ''}>
+      <div class="task-body">
         <div class="task-title" data-inline-title="${t.id}">${esc(t.title)}</div>
         <div class="task-meta">
           <span class="task-cat" style="background:${cc}18;color:${cc}">${esc(t.category)}</span>
