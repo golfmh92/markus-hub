@@ -19,28 +19,33 @@ export function renderNotes(container) {
 
   container.innerHTML = `
     <div class="page-inner">
-      <div class="page-title" style="margin-bottom: 20px;">Notizen</div>
-
-      <div class="search-bar" style="margin-bottom: 12px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input class="input" placeholder="Suchen..." id="note-search" style="padding-left:32px" value="${esc(search)}">
+      <div class="view-header">
+        <div class="view-header-left">
+          <div class="page-title">Notizen</div>
+          <span class="view-header-count">${state.notes.length}</span>
+        </div>
       </div>
 
-      <div class="quick-add" style="margin-bottom: 16px; padding: 8px 12px; border: 1px solid var(--divider); border-radius: var(--radius-md);">
-        <input class="input" placeholder="Neue Notiz..." id="note-quick-input">
-      </div>
-
-      <div class="filter-pills" style="margin-bottom: 16px;">
+      <div class="filter-toolbar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input class="input" placeholder="Suchen..." id="note-search" style="border:none;background:none;padding:0;height:auto;flex:1" value="${esc(search)}">
+        <div class="filter-sep"></div>
         ${['all', ...state.categories.map(c => c.name)].map(c => {
           const label = c === 'all' ? 'Alle' : c;
-          return `<button class="filter-pill ${noteCatFilter === c ? 'active' : ''}" data-ncat="${c}" style="font-size:11px;padding:3px 8px">${label}</button>`;
+          return `<button class="filter-pill ${noteCatFilter === c ? 'active' : ''}" data-ncat="${c}" style="font-size:10px;padding:2px 7px">${label}</button>`;
         }).join('')}
       </div>
 
-      <div id="notes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+      <div class="quick-add-box">
+        <div class="quick-add-icon">+</div>
+        <input class="input" placeholder="Schnelle Notiz..." id="note-quick-input">
+        <span style="font-size:var(--text-xs);color:var(--text-tertiary)"><span class="kbd">⇧N</span></span>
+      </div>
+
+      <div class="notes-grid" id="notes-grid">
         ${filtered.length
           ? filtered.map(n => noteCardHTML(n)).join('')
-          : '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">📝</div><h3>Noch keine Notizen</h3><p>Schreibe deine erste Notiz oben</p></div>'}
+          : '<div class="widget-empty" style="grid-column:1/-1"><div style="font-size:28px;margin-bottom:8px">📝</div>Noch keine Notizen</div>'}
       </div>
     </div>
   `;

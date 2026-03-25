@@ -21,36 +21,49 @@ export function renderProjects(container) {
 
   container.innerHTML = `
     <div class="page-inner">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div class="page-title">Projekte</div>
-        <button class="btn btn-primary" id="new-project-btn">+ Neu</button>
+      <div class="view-header">
+        <div class="view-header-left">
+          <div class="page-title">Projekte</div>
+          <span class="view-header-count">${filtered.length}</span>
+        </div>
+        <button class="btn btn-primary" id="new-project-btn" style="height:28px;font-size:var(--text-xs)">+ Neues Projekt</button>
       </div>
 
-      <div class="filter-pills" style="margin-bottom: 16px;">
+      <div class="filter-toolbar" style="margin-bottom:16px">
         ${[['Alle', 'all'], ['Aktiv', 'active'], ['Archiv', 'archived']].map(([label, key]) =>
           `<button class="filter-pill ${projectFilter === key ? 'active' : ''}" data-pfilter="${key}">${label}</button>`
         ).join('')}
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:12px;">
+      <div class="projects-grid-view">
         ${filtered.length
           ? filtered.map(p => {
               const tc = taskCounts[p.id] || 0;
+              const allProjTasks = state.tasks.filter(t => t.project_id === p.id);
+              const doneProjTasks = allProjTasks.filter(t => t.done);
+              const pct = allProjTasks.length > 0 ? Math.round(doneProjTasks.length / allProjTasks.length * 100) : 0;
               return `
-                <div class="project-card" data-project-id="${p.id}">
-                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-                    <div class="project-icon" style="background:${p.color}18">${p.icon || '📁'}</div>
-                    <div style="min-width:0">
-                      <div class="project-name">${esc(p.name)}</div>
-                      <span class="task-cat" style="background:${catColor(p.category)}18;color:${catColor(p.category)};font-size:10px;padding:1px 6px">${esc(p.category)}</span>
-                    </div>
+                <div class="project-card-v2" data-project-id="${p.id}" style="--proj-color:${p.color}">
+                  <div class="project-card-v2-header">
+                    <div class="project-card-v2-icon" style="background:${p.color}18">${p.icon || '📁'}</div>
+                    <div class="project-card-v2-title">${esc(p.name)}</div>
                   </div>
-                  ${p.next_date ? `<div style="font-size:var(--text-xs);color:var(--text-secondary);margin-top:4px">📅 ${fmtDate(p.next_date)}</div>` : ''}
-                  ${p.location ? `<div style="font-size:var(--text-xs);color:var(--text-secondary)">📍 ${esc(p.location)}</div>` : ''}
-                  <div style="font-size:var(--text-xs);color:var(--text-tertiary);margin-top:6px">${tc} offene Tasks</div>
+                  <div class="project-card-v2-meta">
+                    <span class="task-cat" style="background:${catColor(p.category)}18;color:${catColor(p.category)};font-size:9px;padding:1px 5px">${esc(p.category)}</span>
+                    ${p.next_date ? `<span>📅 ${fmtDate(p.next_date)}</span>` : ''}
+                  </div>
+                  ${allProjTasks.length > 0 ? `
+                    <div class="project-card-v2-tasks">
+                      <span>${tc} offen</span>
+                      <div class="project-card-v2-bar">
+                        <div class="project-card-v2-bar-fill" style="width:${pct}%;background:${p.color}"></div>
+                      </div>
+                      <span>${pct}%</span>
+                    </div>
+                  ` : `<div style="font-size:var(--text-xs);color:var(--text-tertiary);margin-top:8px">Keine Tasks</div>`}
                 </div>`;
             }).join('')
-          : '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">📂</div><h3>Noch keine Projekte</h3></div>'}
+          : '<div class="widget-empty" style="grid-column:1/-1"><div style="font-size:28px;margin-bottom:8px">📂</div>Noch keine Projekte</div>'}
       </div>
     </div>
 

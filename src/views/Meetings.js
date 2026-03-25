@@ -14,13 +14,16 @@ export function renderMeetings(container) {
 
   container.innerHTML = `
     <div class="page-inner">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div class="page-title">Meetings</div>
-        <button class="btn btn-primary" id="new-meeting-btn">+ Neues Meeting</button>
+      <div class="view-header">
+        <div class="view-header-left">
+          <div class="page-title">Meetings</div>
+          <span class="view-header-count">${filtered.length}</span>
+        </div>
+        <button class="btn btn-primary" id="new-meeting-btn" style="height:28px;font-size:var(--text-xs)">+ Neues Meeting</button>
       </div>
 
-      <div style="margin-bottom:16px">
-        <select id="meeting-proj-filter" class="input" style="max-width:200px">
+      <div class="filter-toolbar" style="margin-bottom:16px">
+        <select id="meeting-proj-filter" class="input" style="width:auto;height:24px;font-size:10px;padding:1px 20px 1px 6px;border:none;background:none">
           <option value="all">Alle Projekte</option>
           ${state.projects.filter(p => !p.archived).map(p =>
             `<option value="${p.id}" ${projFilter === p.id ? 'selected' : ''}>${esc(p.name)}</option>`
@@ -31,7 +34,7 @@ export function renderMeetings(container) {
       <div id="meetings-list">
         ${filtered.length
           ? filtered.map(m => meetingCardHTML(m)).join('')
-          : '<div class="empty-state"><div class="empty-state-icon">🎙</div><h3>Noch keine Meetings</h3><p>Tippe auf "+ Neues Meeting" um loszulegen</p></div>'}
+          : '<div class="widget-empty"><div style="font-size:28px;margin-bottom:8px">🎙</div>Noch keine Meetings</div>'}
       </div>
     </div>
 
@@ -52,19 +55,18 @@ function meetingCardHTML(m) {
   }[m.status] || '';
 
   return `
-    <div class="meeting-card" data-meeting="${m.id}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:var(--text-sm);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.title)}</div>
-          <div style="font-size:var(--text-xs);color:var(--text-secondary);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <span>📅 ${fmtDate(m.meeting_date)}</span>
-            ${dur ? `<span>⏱ ${dur}</span>` : ''}
-            ${proj ? `<span class="badge" style="background:${proj.color}18;color:${proj.color}">${esc(proj.name)}</span>` : ''}
-            ${statusBadge}
-          </div>
+    <div class="meeting-card-v2" data-meeting="${m.id}">
+      <div class="meeting-card-v2-icon">🎙</div>
+      <div class="meeting-card-v2-body">
+        <div class="meeting-card-v2-title">${esc(m.title)}</div>
+        <div class="meeting-card-v2-meta">
+          <span>${fmtDate(m.meeting_date)}</span>
+          ${dur ? `<span>⏱ ${dur}</span>` : ''}
+          ${proj ? `<span class="badge" style="background:${proj.color}18;color:${proj.color};font-size:9px;padding:1px 5px">${esc(proj.name)}</span>` : ''}
+          ${statusBadge}
         </div>
+        ${m.summary ? `<div style="font-size:var(--text-xs);color:var(--text-tertiary);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.summary)}</div>` : ''}
       </div>
-      ${m.summary ? `<div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:10px;line-height:1.5;border-top:1px solid var(--divider);padding-top:10px">${esc(m.summary)}</div>` : ''}
     </div>`;
 }
 

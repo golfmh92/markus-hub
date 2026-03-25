@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { esc, render } from '../lib/dom.js';
+import { esc } from '../lib/dom.js';
 import { today, fmtDate, fmtDateFull, greeting, daysFromNow, timeFromISO, dateFromISO } from '../lib/date.js';
 import { taskHTML, bindTaskEvents } from '../components/TaskItem.js';
 import { CAL_COLORS } from '../services/calendar.js';
@@ -11,14 +11,13 @@ export function renderToday(container) {
   const doneTodayTasks = allTodayTasks.filter(t => t.done);
   const progressPct = allTodayTasks.length > 0 ? Math.round(doneTodayTasks.length / allTodayTasks.length * 100) : 0;
   const openTasks = state.tasks.filter(t => !t.done);
-  const pinnedNotes = state.notes.filter(n => n.pinned).slice(0, 3);
   const todayTasks = openTasks.filter(t => t.due_date === td);
   const weekStr = daysFromNow(7);
   const weekTasks = openTasks.filter(t => t.due_date && t.due_date > td && t.due_date <= weekStr);
   const overdue = openTasks.filter(t => t.due_date && t.due_date < td);
   const highPrio = openTasks.filter(t => t.priority === 'high' && t.due_date !== td && !(t.due_date && t.due_date < td));
+  const pinnedNotes = state.notes.filter(n => n.pinned).slice(0, 4);
 
-  // Calendar events today
   const calHidden = JSON.parse(localStorage.getItem('loom_cal_hidden') || localStorage.getItem('hub_cal_hidden') || '[]');
   const calToday = state.calendarEvents.filter(e => {
     if (calHidden.includes(e.calendar_name)) return false;
@@ -27,14 +26,41 @@ export function renderToday(container) {
 
   container.innerHTML = `
     <div class="page-inner">
-      <div class="page-title">${greeting()}</div>
-      <div class="page-subtitle">${fmtDateFull(new Date())}</div>
+      <div style="margin-bottom:20px">
+        <div class="page-title">${greeting()}</div>
+        <div class="page-subtitle">${fmtDateFull(new Date())}</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-pill" style="cursor:pointer" data-goto="tasks">
+          <div class="stat-pill-icon" style="background:var(--accent-bg);color:var(--accent)">📋</div>
+          <div>
+            <div class="stat-pill-num" style="color:var(--accent)">${todayTasks.length}</div>
+            <div class="stat-pill-label">Heute offen</div>
+          </div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-icon" style="background:var(--orange-bg);color:var(--orange)">📅</div>
+          <div>
+            <div class="stat-pill-num" style="color:var(--orange)">${weekTasks.length}</div>
+            <div class="stat-pill-label">Diese Woche</div>
+          </div>
+        </div>
+        <div class="stat-pill" style="cursor:pointer" data-goto="tasks">
+          <div class="stat-pill-icon" style="background:var(--red-bg);color:var(--red)">⚠</div>
+          <div>
+            <div class="stat-pill-num" style="color:var(--red)">${overdue.length}</div>
+            <div class="stat-pill-label">Überfällig</div>
+          </div>
+        </div>
+      </div>
 
       ${allTodayTasks.length > 0 ? `
-        <div style="margin-top:20px;margin-bottom:24px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <span style="font-size:var(--text-sm);font-weight:600">${doneTodayTasks.length} von ${allTodayTasks.length} Tasks erledigt</span>
-            <span style="font-size:var(--text-sm);color:var(--text-secondary)">${progressPct}%</span>
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:var(--text-xs);font-weight:600;color:var(--text-secondary)">${doneTodayTasks.length}/${allTodayTasks.length} erledigt</span>
+            <span style="font-size:var(--text-xs);color:var(--text-tertiary)">${progressPct}%</span>
           </div>
           <div class="progress-bar">
             <div class="progress-bar-fill" style="width:${progressPct}%;${progressPct === 100 ? 'background:var(--green)' : ''}"></div>
@@ -42,85 +68,97 @@ export function renderToday(container) {
         </div>
       ` : ''}
 
-      <div class="stats-grid" style="margin-top: ${allTodayTasks.length > 0 ? '0' : '24px'};">
-        <div class="stat-card">
-          <div class="stat-num" style="color: var(--accent)">${todayTasks.length}</div>
-          <div class="stat-label">Heute offen</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" style="color: var(--orange)">${weekTasks.length}</div>
-          <div class="stat-label">Diese Woche</div>
-        </div>
-        <div class="stat-card" style="cursor:pointer" id="overdue-stat">
-          <div class="stat-num" style="color: var(--red)">${overdue.length}</div>
-          <div class="stat-label">Überfällig</div>
-        </div>
-      </div>
+      <!-- Dashboard Grid -->
+      <div class="dashboard-grid">
 
-      ${calToday.length ? `
-        <div style="margin-bottom: 28px;">
-          <div class="section-label" style="margin-bottom: 10px;">Termine heute</div>
-          ${calToday.map(e => {
-            const color = CAL_COLORS[e.calendar_name] || 'var(--accent)';
-            const time = e.all_day ? 'Ganztägig' : timeFromISO(e.start_at);
-            return `
-              <div class="cal-event-item">
-                <div class="cal-event-dot" style="background:${color}"></div>
-                <div style="flex:1;min-width:0">
-                  <div class="cal-event-title">${esc(e.title)}</div>
-                  <div class="cal-event-meta">${esc(e.calendar_name)}${e.location ? ' · ' + esc(e.location) : ''}</div>
+        <!-- Calendar Widget -->
+        ${calToday.length ? `
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-header-title">📅 Termine <span class="widget-header-count">${calToday.length}</span></div>
+            </div>
+            <div class="widget-body-flush">
+              ${calToday.map(e => {
+                const color = CAL_COLORS[e.calendar_name] || 'var(--accent)';
+                const time = e.all_day ? 'Ganztägig' : timeFromISO(e.start_at);
+                return `
+                  <div class="cal-event-row">
+                    <div class="cal-event-time">${time}</div>
+                    <div class="cal-event-dot" style="background:${color}"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:var(--text-sm);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.title)}</div>
+                      <div style="font-size:var(--text-xs);color:var(--text-tertiary)">${esc(e.calendar_name)}</div>
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- High Priority Widget -->
+        ${highPrio.length ? `
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-header-title" style="color:var(--red)">🔴 Hohe Priorität <span class="widget-header-count">${highPrio.length}</span></div>
+            </div>
+            <div class="widget-body-flush task-list-widget">
+              ${highPrio.slice(0, 5).map(t => taskHTML(t)).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Today Tasks Widget -->
+        ${todayTasks.length ? `
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-header-title">✅ Heute fällig <span class="widget-header-count">${todayTasks.length}</span></div>
+            </div>
+            <div class="widget-body-flush task-list-widget">
+              ${todayTasks.sort(prioritySorter).map(t => taskHTML(t)).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Week Tasks Widget -->
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-header-title">📆 Nächste 7 Tage <span class="widget-header-count">${[...overdue, ...weekTasks].length}</span></div>
+            <button class="btn btn-ghost" style="font-size:var(--text-xs)" data-goto="tasks">Alle →</button>
+          </div>
+          <div class="widget-body-flush task-list-widget">
+            ${[...overdue, ...weekTasks].length
+              ? [...overdue, ...weekTasks].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).slice(0, 8).map(t => taskHTML(t)).join('')
+              : '<div class="widget-empty">Keine Deadlines diese Woche 🎉</div>'}
+          </div>
+        </div>
+
+        <!-- Pinned Notes Widget -->
+        ${pinnedNotes.length ? `
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-header-title">📌 Angepinnt</div>
+              <button class="btn btn-ghost" style="font-size:var(--text-xs)" data-goto="notes">Alle →</button>
+            </div>
+            <div class="widget-body" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              ${pinnedNotes.map(n => `
+                <div class="note-card" style="cursor:pointer;margin:0;padding:10px 12px" data-pinned-note="${n.id}">
+                  <div style="font-size:var(--text-xs);line-height:1.5;color:var(--text-primary);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;white-space:pre-wrap">${esc(n.content.split('\n').slice(0, 3).join('\n'))}</div>
                 </div>
-                <div class="cal-event-time">${time}</div>
-              </div>`;
-          }).join('')}
-        </div>
-      ` : ''}
-
-      ${todayTasks.length ? `
-        <div style="margin-bottom: 28px;">
-          <div class="section-label" style="margin-bottom: 10px;">Heute fällig</div>
-          <div id="today-tasks">
-            ${todayTasks.sort(prioritySorter).map(t => taskHTML(t)).join('')}
+              `).join('')}
+            </div>
           </div>
-        </div>
-      ` : ''}
+        ` : ''}
 
-      ${highPrio.length ? `
-        <div style="margin-bottom: 28px;">
-          <div class="section-label" style="margin-bottom: 10px; color: var(--red);">Hohe Priorität</div>
-          <div id="high-prio-tasks">
-            ${highPrio.map(t => taskHTML(t)).join('')}
-          </div>
-        </div>
-      ` : ''}
-
-      <div style="margin-bottom: 28px;">
-        <div class="section-label" style="margin-bottom: 10px;">Nächste 7 Tage</div>
-        <div id="week-tasks">
-          ${[...overdue, ...weekTasks].length
-            ? [...overdue, ...weekTasks].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).map(t => taskHTML(t)).join('')
-            : '<div class="empty-state"><p>Keine anstehenden Deadlines</p></div>'}
-        </div>
       </div>
-
-      ${pinnedNotes.length ? `
-        <div style="margin-top: 28px;">
-          <div class="section-label" style="margin-bottom: 10px;">📌 Angepinnte Notizen</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:8px">
-            ${pinnedNotes.map(n => `
-              <div class="note-card" style="cursor:pointer;margin:0" data-pinned-note="${n.id}">
-                <div style="font-size:var(--text-sm);line-height:1.5;color:var(--text-primary);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;white-space:pre-wrap">${esc(n.content.split('\n').slice(0, 3).join('\n'))}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
     </div>
   `;
 
   bindTaskEvents(container);
 
-  container.querySelector('#overdue-stat')?.addEventListener('click', () => navigate('tasks'));
+  // Navigation
+  container.querySelectorAll('[data-goto]').forEach(el => {
+    el.addEventListener('click', () => navigate(el.dataset.goto));
+  });
   container.querySelectorAll('[data-pinned-note]').forEach(el => {
     el.addEventListener('click', () => navigate(`notes/${el.dataset.pinnedNote}`));
   });

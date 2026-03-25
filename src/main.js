@@ -7,6 +7,7 @@ import './styles/typography.css';
 import './styles/layout.css';
 import './styles/components.css';
 import './styles/editor.css';
+import './styles/views.css';
 import './styles/animations.css';
 import './styles/dark.css';
 

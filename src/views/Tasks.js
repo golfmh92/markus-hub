@@ -45,42 +45,51 @@ export function renderTasks(container) {
   const sorts = ['due', 'priority', 'category'];
   const sortLabels = { due: 'Fällig', priority: 'Priorität', category: 'Kategorie' };
 
+  const total = state.tasks.filter(t => !t.done).length;
+
   container.innerHTML = `
     <div class="page-inner">
-      <div class="page-title" style="margin-bottom: 20px;">Tasks</div>
-
-      <div class="quick-add" style="margin-bottom: 16px; padding: 8px 12px; border: 1px solid var(--divider); border-radius: var(--radius-md);">
-        <input class="input" placeholder="Neuer Task..." id="task-quick-input">
+      <div class="view-header">
+        <div class="view-header-left">
+          <div class="page-title">Tasks</div>
+          <span class="view-header-count">${total} offen</span>
+        </div>
       </div>
 
-      <div class="filter-pills" style="margin-bottom: 12px;">
+      <div class="quick-add-box">
+        <div class="quick-add-icon">+</div>
+        <input class="input" placeholder="Neuen Task hinzufügen..." id="task-quick-input">
+        <span style="font-size:var(--text-xs);color:var(--text-tertiary)"><span class="kbd">N</span></span>
+      </div>
+
+      <div class="filter-toolbar">
         ${filters.map(([label, key]) =>
           `<button class="filter-pill ${taskFilter === key ? 'active' : ''}" data-filter="${key}">${label}</button>`
         ).join('')}
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-        <div class="filter-pills" style="flex: 1; margin-bottom: 0;">
-          ${['all', ...state.categories.map(c => c.name)].map(c => {
-            const label = c === 'all' ? 'Alle' : c;
-            return `<button class="filter-pill ${taskCatFilter === c ? 'active' : ''}" data-cat="${c}" style="font-size:11px;padding:3px 8px">${label}</button>`;
-          }).join('')}
+        <div class="filter-sep"></div>
+        ${['all', ...state.categories.map(c => c.name)].map(c => {
+          const label = c === 'all' ? 'Alle' : c;
+          return `<button class="filter-pill ${taskCatFilter === c ? 'active' : ''}" data-cat="${c}" style="font-size:10px;padding:2px 7px">${label}</button>`;
+        }).join('')}
+        <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
+          <select id="group-select" class="input" style="width:auto;height:24px;font-size:10px;padding:1px 20px 1px 6px;border-radius:4px">
+            <option value="none" ${taskGroup === 'none' ? 'selected' : ''}>Gruppierung</option>
+            <option value="project" ${taskGroup === 'project' ? 'selected' : ''}>Projekt</option>
+            <option value="category" ${taskGroup === 'category' ? 'selected' : ''}>Kategorie</option>
+            <option value="priority" ${taskGroup === 'priority' ? 'selected' : ''}>Priorität</option>
+          </select>
+          <button class="btn btn-ghost" id="sort-btn" style="font-size:10px;height:24px;padding:0 8px">
+            ↕ ${sortLabels[taskSort]}
+          </button>
         </div>
-        <select id="group-select" class="input" style="width:auto;height:28px;font-size:11px;padding:2px 24px 2px 8px">
-          <option value="none" ${taskGroup === 'none' ? 'selected' : ''}>Keine Gruppierung</option>
-          <option value="project" ${taskGroup === 'project' ? 'selected' : ''}>Nach Projekt</option>
-          <option value="category" ${taskGroup === 'category' ? 'selected' : ''}>Nach Kategorie</option>
-          <option value="priority" ${taskGroup === 'priority' ? 'selected' : ''}>Nach Priorität</option>
-        </select>
-        <button class="btn btn-ghost" id="sort-btn" style="font-size: var(--text-xs);">
-          ${sortLabels[taskSort]}
-        </button>
       </div>
 
-      <div id="tasks-list">
-        ${filtered.length
-          ? renderGroupedTasks(filtered)
-          : '<div class="empty-state"><div class="empty-state-icon">📋</div><h3>Keine Tasks</h3><p>Erstelle deinen ersten Task mit <span class="kbd">N</span></p></div>'}
+      <div class="widget">
+        <div class="widget-body-flush task-list-widget" id="tasks-list">
+          ${filtered.length
+            ? renderGroupedTasks(filtered)
+            : '<div class="widget-empty"><div style="font-size:28px;margin-bottom:8px">📋</div>Keine Tasks<br><span style="font-size:var(--text-xs);color:var(--text-tertiary)">Drücke <span class="kbd">N</span> zum Erstellen</span></div>'}
+        </div>
       </div>
     </div>
 
