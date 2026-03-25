@@ -84,12 +84,10 @@ export function renderTasks(container) {
         </div>
       </div>
 
-      <div class="widget">
-        <div class="widget-body-flush task-list-widget" id="tasks-list">
-          ${filtered.length
-            ? renderGroupedTasks(filtered)
-            : '<div class="widget-empty"><div style="font-size:28px;margin-bottom:8px">📋</div>Keine Tasks<br><span style="font-size:var(--text-xs);color:var(--text-tertiary)">Drücke <span class="kbd">N</span> zum Erstellen</span></div>'}
-        </div>
+      <div class="tasks-columns" id="tasks-list">
+        ${filtered.length
+          ? renderGroupedTasks(filtered)
+          : '<div class="widget-empty" style="grid-column:1/-1"><div style="font-size:28px;margin-bottom:8px">📋</div>Keine Tasks<br><span style="font-size:var(--text-xs);color:var(--text-tertiary)">Drücke <span class="kbd">N</span> zum Erstellen</span></div>'}
       </div>
     </div>
 
@@ -101,7 +99,19 @@ export function renderTasks(container) {
 }
 
 function renderGroupedTasks(tasks) {
-  if (taskGroup === 'none') return tasks.map(t => taskHTML(t)).join('');
+  if (taskGroup === 'none') {
+    // Split into two columns
+    const mid = Math.ceil(tasks.length / 2);
+    const left = tasks.slice(0, mid);
+    const right = tasks.slice(mid);
+    return `
+      <div class="widget">
+        <div class="widget-body-flush task-list-widget">${left.map(t => taskHTML(t)).join('')}</div>
+      </div>
+      <div class="widget">
+        <div class="widget-body-flush task-list-widget">${right.map(t => taskHTML(t)).join('')}</div>
+      </div>`;
+  }
 
   const groups = {};
   const priorityLabels = { high: '🔴 Hoch', normal: '🟡 Normal', low: '⚪ Niedrig' };
@@ -122,9 +132,13 @@ function renderGroupedTasks(tasks) {
   }
 
   return Object.entries(groups).map(([label, items]) => `
-    <div style="margin-bottom:20px">
-      <div class="section-label" style="margin-bottom:8px;padding:4px 0;border-bottom:1px solid var(--divider)">${esc(label)} <span style="font-weight:400;color:var(--text-tertiary)">${items.length}</span></div>
-      ${items.map(t => taskHTML(t)).join('')}
+    <div class="widget">
+      <div class="widget-header">
+        <div class="widget-header-title">${esc(label)} <span class="widget-header-count">${items.length}</span></div>
+      </div>
+      <div class="widget-body-flush task-list-widget">
+        ${items.map(t => taskHTML(t)).join('')}
+      </div>
     </div>
   `).join('');
 }
