@@ -7,6 +7,8 @@ import './styles/typography.css';
 import './styles/layout.css';
 import './styles/components.css';
 import './styles/editor.css';
+import './styles/animations.css';
+import './styles/dark.css';
 
 // Core
 import { state } from './state.js';
@@ -135,8 +137,10 @@ async function onReady() {
   document.getElementById('sidebar-overlay')?.addEventListener('click', closeMobileSidebar);
 
   // Init features
+  initDarkMode();
   initCommandBar();
   initModalClose();
+  initKeyboardShortcuts();
   initPush();
   initRealtime(() => {
     // Re-render current view on realtime updates
@@ -201,6 +205,85 @@ function renderCurrentRoute(page) {
     case 'settings': renderSettings(page); break;
     default: renderToday(page);
   }
+}
+
+// Dark Mode
+export function initDarkMode() {
+  const saved = localStorage.getItem('loom_dark');
+  if (saved === 'true' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  }
+  // Listen for system changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (localStorage.getItem('loom_dark') === null) {
+      document.documentElement.classList.toggle('dark', e.matches);
+    }
+  });
+}
+
+export function toggleDarkMode() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('loom_dark', isDark);
+  return isDark;
+}
+
+export function isDarkMode() {
+  return document.documentElement.classList.contains('dark');
+}
+
+// Keyboard Shortcuts
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Skip if in input/textarea/contenteditable
+    const tag = e.target.tagName;
+    const editable = e.target.isContentEditable;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || editable) {
+      // Only Escape works in inputs
+      if (e.key === 'Escape') {
+        e.target.blur();
+        // Close any open modal
+        document.querySelector('.modal-overlay.open')?.classList.remove('open');
+      }
+      // Cmd+Enter to save in modals
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        const modal = e.target.closest('.modal');
+        if (modal) {
+          const saveBtn = modal.querySelector('.btn-primary');
+          if (saveBtn) { e.preventDefault(); saveBtn.click(); }
+        }
+      }
+      return;
+    }
+
+    // Escape: close modals/command bar
+    if (e.key === 'Escape') {
+      const modal = document.querySelector('.modal-overlay.open');
+      if (modal) { modal.classList.remove('open'); return; }
+      const cmd = document.querySelector('.cmd-overlay.open');
+      if (cmd) { cmd.classList.remove('open'); return; }
+    }
+
+    // N: New Task (navigate to tasks)
+    if (e.key === 'n' && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      navigate('tasks');
+      setTimeout(() => document.getElementById('task-quick-input')?.focus(), 100);
+    }
+
+    // Shift+N: New Note
+    if (e.key === 'N' && e.shiftKey) {
+      e.preventDefault();
+      navigate('notes');
+      setTimeout(() => document.getElementById('note-quick-input')?.focus(), 100);
+    }
+
+    // 1-6: Quick navigate
+    if (e.key >= '1' && e.key <= '6' && !e.metaKey && !e.ctrlKey) {
+      const views = ['today', 'tasks', 'projects', 'notes', 'calendar', 'meetings'];
+      const idx = parseInt(e.key) - 1;
+      if (views[idx]) { e.preventDefault(); navigate(views[idx]); }
+    }
+  });
 }
 
 // Boot

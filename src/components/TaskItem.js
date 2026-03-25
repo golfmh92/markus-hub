@@ -1,8 +1,10 @@
 import { esc } from '../lib/dom.js';
 import { fmtDate, today } from '../lib/date.js';
 import { catColor } from '../services/categories.js';
-import { toggleTask } from '../services/tasks.js';
+import { toggleTask, saveTask } from '../services/tasks.js';
 import { navigate } from '../router.js';
+import { toastSuccess } from './Toast.js';
+import { icons } from '../lib/icons.js';
 
 export function taskHTML(t, { clickToEdit = true } = {}) {
   const cc = catColor(t.category);
@@ -13,23 +15,69 @@ export function taskHTML(t, { clickToEdit = true } = {}) {
     <div class="task-item ${t.done ? 'done' : ''}" data-task-id="${t.id}">
       <div class="task-check ${t.done ? 'checked' : ''}" data-toggle-task="${t.id}"></div>
       <div class="task-body" ${clickToEdit ? `data-edit-task="${t.id}"` : ''}>
-        <div class="task-title">${esc(t.title)}</div>
+        <div class="task-title" data-inline-title="${t.id}">${esc(t.title)}</div>
         <div class="task-meta">
           <span class="task-cat" style="background:${cc}18;color:${cc}">${esc(t.category)}</span>
           ${t.due_date ? `<span class="task-due ${isOverdue ? 'overdue' : ''}">${isOverdue ? '! ' : ''}${fmtDate(t.due_date)}</span>` : ''}
           <span class="priority-dot" style="background:${priColor}"></span>
         </div>
       </div>
+      <div class="task-edit-hint" style="color:var(--text-tertiary);flex-shrink:0">${icons.edit}</div>
     </div>`;
 }
 
 export function bindTaskEvents(container) {
   container.addEventListener('click', async (e) => {
+    // Toggle done
     const toggleEl = e.target.closest('[data-toggle-task]');
     if (toggleEl) {
       e.stopPropagation();
+      const taskItem = toggleEl.closest('.task-item');
+      // Add completion animation
+      if (taskItem && !taskItem.classList.contains('done')) {
+        taskItem.classList.add('just-done');
+        toastSuccess('Task erledigt');
+      }
       await toggleTask(toggleEl.dataset.toggleTask);
       return;
     }
+  });
+
+  // Double-click for inline title editing
+  container.addEventListener('dblclick', (e) => {
+    const titleEl = e.target.closest('[data-inline-title]');
+    if (!titleEl) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const taskId = titleEl.dataset.inlineTitle;
+    const currentText = titleEl.textContent.trim();
+
+    const input = document.createElement('input');
+    input.className = 'inline-edit-input';
+    input.value = currentText;
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    const finish = async (save) => {
+      const newTitle = input.value.trim();
+      const span = document.createElement('div');
+      span.className = 'task-title';
+      span.setAttribute('data-inline-title', taskId);
+      span.textContent = save && newTitle ? newTitle : currentText;
+      input.replaceWith(span);
+
+      if (save && newTitle && newTitle !== currentText) {
+        await saveTask({ id: taskId, title: newTitle });
+        toastSuccess('Task aktualisiert');
+      }
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') finish(false);
+    });
+    input.addEventListener('blur', () => finish(true));
   });
 }

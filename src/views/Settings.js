@@ -5,9 +5,12 @@ import { addCategory, removeCategory } from '../services/categories.js';
 import { saveProfile } from '../services/profile.js';
 import { initPush, isPushActive, subscribePush, unsubscribePush } from '../services/push.js';
 import { logout } from '../services/auth.js';
+import { toggleDarkMode, isDarkMode } from '../main.js';
+import { toastSuccess } from '../components/Toast.js';
 
 export function renderSettings(container) {
   const done = state.tasks.filter(t => t.done).length;
+  const dark = isDarkMode();
   const open = state.tasks.filter(t => !t.done).length;
   const pushActive = isPushActive();
 
@@ -23,6 +26,33 @@ export function renderSettings(container) {
         <div>
           <div style="font-size:var(--text-base);font-weight:600">${esc(state.currentUser?.email)}</div>
           <div style="font-size:var(--text-sm);color:var(--text-secondary)">${open} offene Tasks · ${done} erledigt · ${state.projects.length} Projekte</div>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div style="margin-bottom:32px">
+        <div class="section-label" style="margin-bottom:12px">Darstellung</div>
+        <div style="border:1px solid var(--divider);border-radius:var(--radius-md);padding:16px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:var(--text-sm);font-weight:600">Dark Mode</div>
+            <div style="font-size:var(--text-xs);color:var(--text-secondary)">Dunkles Design für die Augen</div>
+          </div>
+          <button class="btn ${dark ? 'btn-primary' : 'btn-secondary'}" id="dark-mode-toggle" style="min-width:80px">
+            ${dark ? '☀️ Light' : '🌙 Dark'}
+          </button>
+        </div>
+      </div>
+
+      <!-- Keyboard Shortcuts -->
+      <div style="margin-bottom:32px">
+        <div class="section-label" style="margin-bottom:12px">Keyboard Shortcuts</div>
+        <div style="border:1px solid var(--divider);border-radius:var(--radius-md);padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:var(--text-sm)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Suche</span><span class="kbd">⌘K</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Neuer Task</span><span class="kbd">N</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Neue Notiz</span><span class="kbd">⇧N</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Speichern</span><span class="kbd">⌘↵</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Schließen</span><span class="kbd">Esc</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span>Navigation</span><span><span class="kbd">1</span>-<span class="kbd">6</span></span></div>
         </div>
       </div>
 
@@ -105,6 +135,12 @@ function bindSettingsEvents(container) {
     row.addEventListener('mouseleave', () => row.style.background = '');
   });
 
+  // Dark mode toggle
+  container.querySelector('#dark-mode-toggle')?.addEventListener('click', () => {
+    toggleDarkMode();
+    renderSettings(container);
+  });
+
   // Push toggle
   container.querySelector('#push-toggle')?.addEventListener('click', async () => {
     try {
@@ -125,11 +161,7 @@ function bindSettingsEvents(container) {
       container.querySelector('#profile-openai-key').value.trim(),
       container.querySelector('#profile-anthropic-key').value.trim()
     );
-    const msg = container.querySelector('#profile-save-msg');
-    if (msg) {
-      msg.textContent = 'Gespeichert ✓';
-      setTimeout(() => { msg.textContent = ''; }, 2000);
-    }
+    toastSuccess('Gespeichert');
   });
 
   // Logout

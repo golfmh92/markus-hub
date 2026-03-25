@@ -1,0 +1,76 @@
+/* Loom Dark Mode */
+
+html.dark {
+  --bg: #191919;
+  --bg-secondary: #202020;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-active: rgba(255, 255, 255, 0.08);
+  --sidebar-bg: #202020;
+
+  --text-primary: #ebebeb;
+  --text-secondary: #9b9b9b;
+  --text-tertiary: #5a5a5a;
+  --text-link: #529cca;
+
+  --accent: #529cca;
+  --accent-bg: rgba(82, 156, 202, 0.15);
+  --green: #4dab9a;
+  --green-bg: rgba(77, 171, 154, 0.15);
+  --red: #eb5757;
+  --red-bg: rgba(235, 87, 87, 0.15);
+  --orange: #e9973f;
+  --orange-bg: rgba(233, 151, 63, 0.15);
+  --yellow: #dfab01;
+  --yellow-bg: rgba(223, 171, 1, 0.15);
+  --purple: #9065c0;
+  --purple-bg: rgba(144, 101, 192, 0.15);
+
+  --divider: rgba(255, 255, 255, 0.07);
+  --shadow-sm: rgba(0, 0, 0, 0.2) 0px 0px 0px 1px, rgba(0, 0, 0, 0.3) 0px 3px 6px;
+  --shadow-md: rgba(0, 0, 0, 0.2) 0px 0px 0px 1px, rgba(0, 0, 0, 0.3) 0px 5px 10px, rgba(0, 0, 0, 0.4) 0px 15px 40px;
+
+  color-scheme: dark;
+}
+
+/* Scrollbar in dark mode */
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Auth screen */
+html.dark .auth-screen {
+  background: var(--bg);
+}
+
+/* Toast override */
+html.dark .toast {
+  background: #2f2f2f;
+  color: var(--text-primary);
+  border: 1px solid var(--divider);
+}
+
+html.dark .toast.toast-success { background: #1a3a32; color: var(--green); }
+html.dark .toast.toast-error { background: #3a1a1a; color: var(--red); }
+
+/* Skeleton override */
+html.dark .skeleton {
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(255, 255, 255, 0.04) 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+}
+
+/* Kbd hint */
+html.dark .kbd {
+  background: #2a2a2a;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+}
+
+/* Input focus */
+html.dark .input:focus {
+  background: var(--bg);
+}
+
+/* Record button stays red */
+html.dark .record-btn {
+  background: var(--red);
+}

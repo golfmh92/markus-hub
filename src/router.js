@@ -54,6 +54,16 @@ function handleRoute() {
     const viewName = path.split('/')[0];
     state.currentView = viewName;
     state.currentParams = result.params;
+
+    // Smooth page transition
+    const page = document.getElementById('page');
+    if (page) {
+      page.classList.remove('page-enter');
+      // Force reflow to restart animation
+      void page.offsetWidth;
+      page.classList.add('page-enter');
+    }
+
     currentCleanup = result.handler(result.params) || null;
   } else {
     // Default to today

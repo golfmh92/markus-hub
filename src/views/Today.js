@@ -7,7 +7,11 @@ import { navigate } from '../router.js';
 
 export function renderToday(container) {
   const td = today();
+  const allTodayTasks = state.tasks.filter(t => t.due_date === td);
+  const doneTodayTasks = allTodayTasks.filter(t => t.done);
+  const progressPct = allTodayTasks.length > 0 ? Math.round(doneTodayTasks.length / allTodayTasks.length * 100) : 0;
   const openTasks = state.tasks.filter(t => !t.done);
+  const pinnedNotes = state.notes.filter(n => n.pinned).slice(0, 3);
   const todayTasks = openTasks.filter(t => t.due_date === td);
   const weekStr = daysFromNow(7);
   const weekTasks = openTasks.filter(t => t.due_date && t.due_date > td && t.due_date <= weekStr);
@@ -26,10 +30,22 @@ export function renderToday(container) {
       <div class="page-title">${greeting()}</div>
       <div class="page-subtitle">${fmtDateFull(new Date())}</div>
 
-      <div class="stats-grid" style="margin-top: 24px;">
+      ${allTodayTasks.length > 0 ? `
+        <div style="margin-top:20px;margin-bottom:24px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:var(--text-sm);font-weight:600">${doneTodayTasks.length} von ${allTodayTasks.length} Tasks erledigt</span>
+            <span style="font-size:var(--text-sm);color:var(--text-secondary)">${progressPct}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-bar-fill" style="width:${progressPct}%;${progressPct === 100 ? 'background:var(--green)' : ''}"></div>
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="stats-grid" style="margin-top: ${allTodayTasks.length > 0 ? '0' : '24px'};">
         <div class="stat-card">
           <div class="stat-num" style="color: var(--accent)">${todayTasks.length}</div>
-          <div class="stat-label">Heute</div>
+          <div class="stat-label">Heute offen</div>
         </div>
         <div class="stat-card">
           <div class="stat-num" style="color: var(--orange)">${weekTasks.length}</div>
@@ -86,12 +102,28 @@ export function renderToday(container) {
             : '<div class="empty-state"><p>Keine anstehenden Deadlines</p></div>'}
         </div>
       </div>
+
+      ${pinnedNotes.length ? `
+        <div style="margin-top: 28px;">
+          <div class="section-label" style="margin-bottom: 10px;">📌 Angepinnte Notizen</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:8px">
+            ${pinnedNotes.map(n => `
+              <div class="note-card" style="cursor:pointer;margin:0" data-pinned-note="${n.id}">
+                <div style="font-size:var(--text-sm);line-height:1.5;color:var(--text-primary);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;white-space:pre-wrap">${esc(n.content.split('\n').slice(0, 3).join('\n'))}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
 
   bindTaskEvents(container);
 
   container.querySelector('#overdue-stat')?.addEventListener('click', () => navigate('tasks'));
+  container.querySelectorAll('[data-pinned-note]').forEach(el => {
+    el.addEventListener('click', () => navigate(`notes/${el.dataset.pinnedNote}`));
+  });
 }
 
 function prioritySorter(a, b) {

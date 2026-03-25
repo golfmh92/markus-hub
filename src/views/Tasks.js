@@ -1,15 +1,17 @@
 import { state } from '../state.js';
 import { esc } from '../lib/dom.js';
-import { today, daysFromNow } from '../lib/date.js';
+import { today, daysFromNow, fmtDate } from '../lib/date.js';
 import { taskHTML, bindTaskEvents } from '../components/TaskItem.js';
 import { quickAddTask, saveTask, deleteTask } from '../services/tasks.js';
 import { catColor } from '../services/categories.js';
 import { openModal, closeModal } from '../components/Modal.js';
+import { toastSuccess } from '../components/Toast.js';
 import { PROJECT_ICONS, PROJECT_COLORS } from '../state.js';
 
 let taskFilter = 'alle';
 let taskCatFilter = 'all';
 let taskSort = 'due';
+let taskGroup = 'none'; // none, date, project, category, priority
 
 export function renderTasks(container) {
   const td = today();
@@ -64,6 +66,12 @@ export function renderTasks(container) {
             return `<button class="filter-pill ${taskCatFilter === c ? 'active' : ''}" data-cat="${c}" style="font-size:11px;padding:3px 8px">${label}</button>`;
           }).join('')}
         </div>
+        <select id="group-select" class="input" style="width:auto;height:28px;font-size:11px;padding:2px 24px 2px 8px">
+          <option value="none" ${taskGroup === 'none' ? 'selected' : ''}>Keine Gruppierung</option>
+          <option value="project" ${taskGroup === 'project' ? 'selected' : ''}>Nach Projekt</option>
+          <option value="category" ${taskGroup === 'category' ? 'selected' : ''}>Nach Kategorie</option>
+          <option value="priority" ${taskGroup === 'priority' ? 'selected' : ''}>Nach Priorität</option>
+        </select>
         <button class="btn btn-ghost" id="sort-btn" style="font-size: var(--text-xs);">
           ${sortLabels[taskSort]}
         </button>
@@ -71,8 +79,8 @@ export function renderTasks(container) {
 
       <div id="tasks-list">
         ${filtered.length
-          ? filtered.map(t => taskHTML(t)).join('')
-          : '<div class="empty-state"><div class="empty-state-icon">📋</div><h3>Keine Tasks</h3><p>Erstelle deinen ersten Task</p></div>'}
+          ? renderGroupedTasks(filtered)
+          : '<div class="empty-state"><div class="empty-state-icon">📋</div><h3>Keine Tasks</h3><p>Erstelle deinen ersten Task mit <span class="kbd">N</span></p></div>'}
       </div>
     </div>
 
@@ -83,13 +91,45 @@ export function renderTasks(container) {
   bindTaskViewEvents(container);
 }
 
+function renderGroupedTasks(tasks) {
+  if (taskGroup === 'none') return tasks.map(t => taskHTML(t)).join('');
+
+  const groups = {};
+  const priorityLabels = { high: '🔴 Hoch', normal: '🟡 Normal', low: '⚪ Niedrig' };
+
+  for (const t of tasks) {
+    let key;
+    switch (taskGroup) {
+      case 'project':
+        const proj = t.project_id ? state.projects.find(p => p.id === t.project_id) : null;
+        key = proj ? proj.name : 'Kein Projekt';
+        break;
+      case 'category': key = t.category || 'Ohne Kategorie'; break;
+      case 'priority': key = priorityLabels[t.priority] || '🟡 Normal'; break;
+      default: key = 'Alle';
+    }
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  }
+
+  return Object.entries(groups).map(([label, items]) => `
+    <div style="margin-bottom:20px">
+      <div class="section-label" style="margin-bottom:8px;padding:4px 0;border-bottom:1px solid var(--divider)">${esc(label)} <span style="font-weight:400;color:var(--text-tertiary)">${items.length}</span></div>
+      ${items.map(t => taskHTML(t)).join('')}
+    </div>
+  `).join('');
+}
+
 function bindTaskViewEvents(container) {
-  // Quick add
+  // Quick add with smart parsing
   const quickInput = container.querySelector('#task-quick-input');
   quickInput?.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter' && quickInput.value.trim()) {
-      await quickAddTask(quickInput.value.trim());
+      const raw = quickInput.value.trim();
+      await quickAddTask(raw);
       quickInput.value = '';
+      toastSuccess('Task erstellt');
+      renderTasks(container);
     }
   });
 
@@ -116,6 +156,12 @@ function bindTaskViewEvents(container) {
     renderTasks(container);
   });
 
+  // Grouping
+  container.querySelector('#group-select')?.addEventListener('change', (e) => {
+    taskGroup = e.target.value;
+    renderTasks(container);
+  });
+
   // Edit task (click on body)
   container.addEventListener('click', (e) => {
     const editEl = e.target.closest('[data-edit-task]');
@@ -137,6 +183,7 @@ function bindTaskViewEvents(container) {
       project_id: container.querySelector('#tm-project').value || null,
     });
     closeModal('task-modal');
+    toastSuccess('Task gespeichert');
     renderTasks(container);
   });
 
@@ -147,6 +194,7 @@ function bindTaskViewEvents(container) {
     if (id) {
       await deleteTask(id);
       closeModal('task-modal');
+      toastSuccess('Task gelöscht');
       renderTasks(container);
     }
   });

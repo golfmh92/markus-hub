@@ -5,6 +5,7 @@ import { catColor } from '../services/categories.js';
 import { quickAddNote } from '../services/notes.js';
 import { navigate } from '../router.js';
 import { calcExpr } from '../lib/calc.js';
+import { toastSuccess } from '../components/Toast.js';
 
 let noteCatFilter = 'all';
 
@@ -87,6 +88,7 @@ function bindNotesEvents(container) {
     if (e.key === 'Enter' && quickInput.value.trim()) {
       await quickAddNote(quickInput.value.trim());
       quickInput.value = '';
+      toastSuccess('Notiz erstellt');
       renderNotes(container);
     }
   });

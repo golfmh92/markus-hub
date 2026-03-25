@@ -1,0 +1,387 @@
+/* Loom Animations & Transitions */
+
+/* === Page Transitions === */
+.page-enter {
+  animation: pageIn 0.2s ease-out both;
+}
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* === Task Completion === */
+.task-check {
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.task-check:active {
+  transform: scale(0.85);
+}
+
+.task-check.checked {
+  animation: checkPop 0.3s ease-out;
+}
+
+@keyframes checkPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.task-item.just-done {
+  animation: taskDone 0.4s ease-out forwards;
+}
+
+@keyframes taskDone {
+  0% { opacity: 1; transform: translateX(0); }
+  60% { opacity: 0.6; transform: translateX(8px); }
+  100% { opacity: 0.45; transform: translateX(0); }
+}
+
+/* === Card Hover Lift === */
+.task-item,
+.note-card,
+.project-card,
+.meeting-card,
+.cal-event-item {
+  transition: background 0.15s, box-shadow 0.2s, transform 0.15s;
+}
+
+.note-card:hover,
+.project-card:hover,
+.meeting-card:hover {
+  box-shadow: rgba(15, 15, 15, 0.04) 0px 0px 0px 1px, rgba(15, 15, 15, 0.06) 0px 3px 8px, rgba(15, 15, 15, 0.04) 0px 12px 24px;
+  transform: translateY(-1px);
+}
+
+/* === Button Active States === */
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  filter: brightness(0.9);
+}
+
+/* === Hover Edit Affordance === */
+.task-item .task-edit-hint,
+.note-card .note-edit-hint {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.task-item:hover .task-edit-hint,
+.note-card:hover .note-edit-hint {
+  opacity: 1;
+}
+
+/* === Skeleton Loading === */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(55, 53, 47, 0.06) 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-line {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-line.short { width: 60%; }
+.skeleton-line.medium { width: 80%; }
+.skeleton-line.full { width: 100%; }
+
+.skeleton-card {
+  padding: 16px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+/* === Modal Transitions === */
+.modal-overlay {
+  transition: opacity 0.2s ease-out;
+}
+
+.modal {
+  transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s;
+}
+
+.modal-overlay:not(.open) .modal {
+  transform: scale(0.96) translateY(8px);
+  opacity: 0;
+}
+
+.modal-overlay.open .modal {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* === Toast Animations === */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: var(--text-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
+  animation: toastIn 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+  max-width: 360px;
+}
+
+.toast.toast-out {
+  animation: toastOut 0.2s ease-in forwards;
+}
+
+.toast.toast-success { background: var(--green); }
+.toast.toast-error { background: var(--red); }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.95); }
+}
+
+/* === Command Bar Transitions === */
+.cmd-overlay {
+  transition: opacity 0.15s ease-out;
+}
+
+.cmd-box {
+  transition: transform 0.15s ease-out;
+}
+
+.cmd-overlay:not(.open) .cmd-box {
+  transform: scale(0.96) translateY(-8px);
+}
+
+/* === Sidebar Mobile Transitions === */
+.sidebar {
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.sidebar-overlay {
+  transition: opacity 0.25s ease-out;
+}
+
+/* === Inline Edit Transition === */
+.inline-edit-input {
+  width: 100%;
+  border: none;
+  background: var(--accent-bg);
+  border-radius: var(--radius);
+  padding: 2px 6px;
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+  color: var(--text-primary);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  animation: inlineEditIn 0.15s ease-out;
+}
+
+@keyframes inlineEditIn {
+  from { outline-color: transparent; background: transparent; }
+  to { outline-color: var(--accent); background: var(--accent-bg); }
+}
+
+/* === Swipe Gesture Backgrounds === */
+.swipe-bg-done {
+  background: var(--green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.swipe-bg-delete {
+  background: var(--red);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+/* === Progress Bar === */
+.progress-bar {
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.5s ease-out;
+}
+
+/* === Floating Toolbar === */
+.floating-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.floating-toolbar .tb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.floating-toolbar .tb-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.floating-toolbar .tb-btn.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.floating-toolbar .tb-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--divider);
+  margin: 0 4px;
+}
+
+/* === Slash Command Menu === */
+.slash-menu {
+  position: absolute;
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  min-width: 200px;
+  z-index: 100;
+  animation: slashIn 0.12s ease-out;
+}
+
+@keyframes slashIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slash-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  transition: background 0.1s;
+}
+
+.slash-item:hover, .slash-item.active {
+  background: var(--bg-hover);
+}
+
+.slash-item-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.slash-item-desc {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* === Keyboard Shortcut Hints === */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+/* === Mobile Adjustments === */
+@media (max-width: 767px) {
+  .toast-container {
+    bottom: calc(16px + var(--safe-bottom));
+    right: 16px;
+    left: 16px;
+  }
+
+  .toast {
+    max-width: 100%;
+  }
+
+  .note-card:hover,
+  .project-card:hover,
+  .meeting-card:hover {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .task-item .task-edit-hint,
+  .note-card .note-edit-hint {
+    opacity: 1;
+  }
+}
