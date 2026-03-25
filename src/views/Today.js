@@ -97,69 +97,40 @@ export function renderToday(container) {
           </div>
         ` : ''}
 
-        ${todayFilter === 'overdue' ? `
-          <!-- Filtered: Overdue only -->
-          <div class="widget" style="grid-column:1/-1">
+        ${(!todayFilter || todayFilter === 'overdue') && highPrio.length ? `
+          <div class="widget">
             <div class="widget-header">
-              <div class="widget-header-title" style="color:var(--red)">⚠ Überfällige Tasks <span class="widget-header-count">${overdue.length}</span></div>
+              <div class="widget-header-title" style="color:var(--red)">🔴 Hohe Priorität <span class="widget-header-count">${highPrio.length}</span></div>
             </div>
             <div class="widget-body-flush task-list-widget">
-              ${overdue.length
-                ? overdue.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).map(t => taskHTML(t)).join('')
-                : '<div class="widget-empty">Keine überfälligen Tasks 🎉</div>'}
+              ${highPrio.slice(0, 5).map(t => taskHTML(t)).join('')}
             </div>
           </div>
+        ` : ''}
 
-        ` : todayFilter === 'today' ? `
-          <!-- Filtered: Today only -->
-          <div class="widget" style="grid-column:1/-1">
+        ${(!todayFilter || todayFilter === 'today') && todayTasks.length ? `
+          <div class="widget">
             <div class="widget-header">
               <div class="widget-header-title">✅ Heute fällig <span class="widget-header-count">${todayTasks.length}</span></div>
             </div>
             <div class="widget-body-flush task-list-widget">
-              ${todayTasks.length
-                ? todayTasks.sort(prioritySorter).map(t => taskHTML(t)).join('')
-                : '<div class="widget-empty">Keine Tasks für heute</div>'}
+              ${todayTasks.sort(prioritySorter).map(t => taskHTML(t)).join('')}
             </div>
           </div>
+        ` : ''}
 
-        ` : todayFilter === 'week' ? `
-          <!-- Filtered: Week only -->
-          <div class="widget" style="grid-column:1/-1">
+        ${(!todayFilter || todayFilter === 'overdue') && overdue.length ? `
+          <div class="widget">
             <div class="widget-header">
-              <div class="widget-header-title">📆 Nächste 7 Tage <span class="widget-header-count">${weekTasks.length}</span></div>
+              <div class="widget-header-title" style="color:var(--red)">⚠ Überfällig <span class="widget-header-count">${overdue.length}</span></div>
             </div>
             <div class="widget-body-flush task-list-widget">
-              ${weekTasks.length
-                ? weekTasks.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).map(t => taskHTML(t)).join('')
-                : '<div class="widget-empty">Keine Deadlines diese Woche 🎉</div>'}
+              ${overdue.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).map(t => taskHTML(t)).join('')}
             </div>
           </div>
+        ` : ''}
 
-        ` : `
-          <!-- No filter: Show all widgets -->
-          ${highPrio.length ? `
-            <div class="widget">
-              <div class="widget-header">
-                <div class="widget-header-title" style="color:var(--red)">🔴 Hohe Priorität <span class="widget-header-count">${highPrio.length}</span></div>
-              </div>
-              <div class="widget-body-flush task-list-widget">
-                ${highPrio.slice(0, 5).map(t => taskHTML(t)).join('')}
-              </div>
-            </div>
-          ` : ''}
-
-          ${todayTasks.length ? `
-            <div class="widget">
-              <div class="widget-header">
-                <div class="widget-header-title">✅ Heute fällig <span class="widget-header-count">${todayTasks.length}</span></div>
-              </div>
-              <div class="widget-body-flush task-list-widget">
-                ${todayTasks.sort(prioritySorter).map(t => taskHTML(t)).join('')}
-              </div>
-            </div>
-          ` : ''}
-
+        ${!todayFilter || todayFilter === 'week' ? `
           <div class="widget">
             <div class="widget-header">
               <div class="widget-header-title">📆 Nächste 7 Tage <span class="widget-header-count">${weekTasks.length}</span></div>
@@ -171,23 +142,23 @@ export function renderToday(container) {
                 : '<div class="widget-empty">Keine Deadlines diese Woche 🎉</div>'}
             </div>
           </div>
+        ` : ''}
 
-          ${pinnedNotes.length ? `
-            <div class="widget">
-              <div class="widget-header">
-                <div class="widget-header-title">📌 Angepinnt</div>
-                <button class="btn btn-ghost" style="font-size:var(--text-xs)" data-goto="notes">Alle →</button>
-              </div>
-              <div class="widget-body" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-                ${pinnedNotes.map(n => `
-                  <div class="note-card" style="cursor:pointer;margin:0;padding:10px 12px" data-pinned-note="${n.id}">
-                    <div style="font-size:var(--text-xs);line-height:1.5;color:var(--text-primary);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;white-space:pre-wrap">${esc(n.content.split('\n').slice(0, 3).join('\n'))}</div>
-                  </div>
-                `).join('')}
-              </div>
+        ${!todayFilter && pinnedNotes.length ? `
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-header-title">📌 Angepinnt</div>
+              <button class="btn btn-ghost" style="font-size:var(--text-xs)" data-goto="notes">Alle →</button>
             </div>
-          ` : ''}
-        `}
+            <div class="widget-body" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              ${pinnedNotes.map(n => `
+                <div class="note-card" style="cursor:pointer;margin:0;padding:10px 12px" data-pinned-note="${n.id}">
+                  <div style="font-size:var(--text-xs);line-height:1.5;color:var(--text-primary);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;white-space:pre-wrap">${esc(n.content.split('\n').slice(0, 3).join('\n'))}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
