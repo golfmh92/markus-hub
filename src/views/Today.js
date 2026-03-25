@@ -56,8 +56,8 @@ export function renderToday(container) {
             <div class="stat-pill-label">Überfällig</div>
           </div>
         </div>
+        ${todayFilter ? `<button class="btn btn-ghost" data-stat-filter="" style="font-size:var(--text-xs);flex-shrink:0;align-self:center">✕</button>` : ''}
       </div>
-      ${todayFilter ? `<div style="margin-bottom:12px"><button class="btn btn-ghost" data-stat-filter="" style="font-size:var(--text-xs)">✕ Filter aufheben</button></div>` : ''}
 
       ${allTodayTasks.length > 0 ? `
         <div style="margin-bottom:16px">
