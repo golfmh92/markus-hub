@@ -47,7 +47,7 @@ export function renderToday(container) {
             <div class="stat-pill-label">Diese Woche</div>
           </div>
         </div>
-        <div class="stat-pill" style="cursor:pointer" data-goto="tasks">
+        <div class="stat-pill">
           <div class="stat-pill-icon" style="background:var(--red-bg);color:var(--red)">⚠</div>
           <div>
             <div class="stat-pill-num" style="color:var(--red)">${overdue.length}</div>
@@ -95,6 +95,18 @@ export function renderToday(container) {
           </div>
         ` : ''}
 
+        <!-- Overdue Widget -->
+        ${overdue.length ? `
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-header-title" style="color:var(--red)">⚠ Überfällig <span class="widget-header-count">${overdue.length}</span></div>
+            </div>
+            <div class="widget-body-flush task-list-widget">
+              ${overdue.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).map(t => taskHTML(t)).join('')}
+            </div>
+          </div>
+        ` : ''}
+
         <!-- High Priority Widget -->
         ${highPrio.length ? `
           <div class="widget">
@@ -122,12 +134,12 @@ export function renderToday(container) {
         <!-- Week Tasks Widget -->
         <div class="widget">
           <div class="widget-header">
-            <div class="widget-header-title">📆 Nächste 7 Tage <span class="widget-header-count">${[...overdue, ...weekTasks].length}</span></div>
+            <div class="widget-header-title">📆 Nächste 7 Tage <span class="widget-header-count">${weekTasks.length}</span></div>
             <button class="btn btn-ghost" style="font-size:var(--text-xs)" data-goto="tasks">Alle →</button>
           </div>
           <div class="widget-body-flush task-list-widget">
-            ${[...overdue, ...weekTasks].length
-              ? [...overdue, ...weekTasks].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).slice(0, 8).map(t => taskHTML(t)).join('')
+            ${weekTasks.length
+              ? weekTasks.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).slice(0, 8).map(t => taskHTML(t)).join('')
               : '<div class="widget-empty">Keine Deadlines diese Woche 🎉</div>'}
           </div>
         </div>
