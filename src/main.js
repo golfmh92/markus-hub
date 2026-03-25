@@ -23,7 +23,7 @@ import { loadProfile } from './services/profile.js';
 import { loadCategories } from './services/categories.js';
 import { initRealtime } from './services/realtime.js';
 import { initPush } from './services/push.js';
-import { renderSidebar, openMobileSidebar, closeMobileSidebar } from './components/Sidebar.js';
+import { renderDock } from './components/Dock.js';
 import { initCommandBar } from './components/CommandBar.js';
 import { initModalClose } from './components/Modal.js';
 import { icons } from './lib/icons.js';
@@ -45,13 +45,7 @@ const app = document.getElementById('app');
 
 function buildShell() {
   app.innerHTML = `
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-    <aside class="sidebar" id="sidebar"></aside>
     <div class="main-content">
-      <header class="mobile-header">
-        <button class="mobile-header-menu" id="mobile-menu">${icons.menu}</button>
-        <span class="mobile-header-title">Loom</span>
-      </header>
       <main class="page" id="page"></main>
     </div>
   `;
@@ -128,13 +122,8 @@ async function onReady() {
   loadCategories();
   await Promise.all([loadTasks(), loadProjects(), loadNotes(), loadMeetings(), loadProfile(), loadCalendarEvents()]);
 
-  // Render sidebar
-  const sidebar = document.getElementById('sidebar');
-  renderSidebar(sidebar);
-
-  // Mobile menu
-  document.getElementById('mobile-menu')?.addEventListener('click', openMobileSidebar);
-  document.getElementById('sidebar-overlay')?.addEventListener('click', closeMobileSidebar);
+  // Render dock
+  renderDock();
 
   // Init features
   initDarkMode();
@@ -143,32 +132,26 @@ async function onReady() {
   initKeyboardShortcuts();
   initPush();
   initRealtime(() => {
-    // Re-render current view on realtime updates
     const page = document.getElementById('page');
     if (page) renderCurrentRoute(page);
-    renderSidebar(sidebar);
+    renderDock();
   });
 
   // Setup routes
   const page = document.getElementById('page');
 
-  route('today', () => { renderToday(page); updateSidebar(); });
-  route('tasks', () => { renderTasks(page); updateSidebar(); });
-  route('notes', () => { renderNotes(page); updateSidebar(); });
-  route('notes/:id', (params) => { return renderNoteDetail(page, params); updateSidebar(); });
-  route('projects', () => { renderProjects(page); updateSidebar(); });
-  route('projects/:id', (params) => { renderProjectDetail(page, params); updateSidebar(); });
-  route('calendar', () => { renderCalendar(page); updateSidebar(); });
-  route('meetings', () => { renderMeetings(page); updateSidebar(); });
-  route('meetings/:id', (params) => { renderMeetingDetail(page, params); updateSidebar(); });
-  route('settings', () => { renderSettings(page); updateSidebar(); });
+  route('today', () => { renderToday(page); renderDock(); });
+  route('tasks', () => { renderTasks(page); renderDock(); });
+  route('notes', () => { renderNotes(page); renderDock(); });
+  route('notes/:id', (params) => { return renderNoteDetail(page, params); });
+  route('projects', () => { renderProjects(page); renderDock(); });
+  route('projects/:id', (params) => { renderProjectDetail(page, params); });
+  route('calendar', () => { renderCalendar(page); renderDock(); });
+  route('meetings', () => { renderMeetings(page); renderDock(); });
+  route('meetings/:id', (params) => { renderMeetingDetail(page, params); });
+  route('settings', () => { renderSettings(page); renderDock(); });
 
   initRouter();
-}
-
-function updateSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  if (sidebar) renderSidebar(sidebar);
 }
 
 function renderCurrentRoute(page) {
