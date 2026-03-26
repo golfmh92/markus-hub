@@ -132,11 +132,12 @@ async function onReady() {
   initModalClose();
   initKeyboardShortcuts();
   initPush();
-  initRealtime(() => {
-    const page = document.getElementById('page');
-    if (page) renderCurrentRoute(page);
-    renderDock();
-  });
+  // Realtime disabled — causes WebSocket errors if not configured in Supabase
+  // initRealtime(() => {
+  //   const page = document.getElementById('page');
+  //   if (page) renderCurrentRoute(page);
+  //   renderDock();
+  // });
 
   // Setup routes
   const page = document.getElementById('page');
