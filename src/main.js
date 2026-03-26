@@ -133,12 +133,26 @@ async function onReady() {
   initModalClose();
   initKeyboardShortcuts();
   initPush();
-  // Realtime disabled — causes WebSocket errors if not configured in Supabase
-  // initRealtime(() => {
-  //   const page = document.getElementById('page');
-  //   if (page) renderCurrentRoute(page);
-  //   renderDock();
-  // });
+
+  // Poll for changes every 10s (Realtime disabled due to WebSocket issues)
+  setInterval(async () => {
+    if (!document.hidden) {
+      await Promise.all([loadTasks(), loadProjects(), loadNotes(), loadCalendarEvents()]);
+      const page = document.getElementById('page');
+      if (page) renderCurrentRoute(page);
+      renderDock();
+    }
+  }, 10000);
+
+  // Also refresh when tab becomes visible again
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden) {
+      await Promise.all([loadTasks(), loadProjects(), loadNotes(), loadCalendarEvents()]);
+      const page = document.getElementById('page');
+      if (page) renderCurrentRoute(page);
+      renderDock();
+    }
+  });
 
   // Setup routes
   const page = document.getElementById('page');
