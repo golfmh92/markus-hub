@@ -62,13 +62,15 @@ export function renderSettings(container) {
       <div style="margin-bottom:32px">
         <div class="section-label" style="margin-bottom:12px">Kategorien</div>
         <div id="cat-list">
-          ${state.categories.map(c => `
-            <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius);transition:background .1s" class="cat-row">
-              <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
-              <div style="flex:1;font-size:var(--text-sm)">${esc(c.name)}</div>
-              ${!DEFAULT_CATEGORIES.find(d => d.name === c.name) ? `<button class="btn btn-ghost" data-remove-cat="${esc(c.name)}" style="font-size:var(--text-xs);color:var(--text-tertiary)">×</button>` : ''}
-            </div>
-          `).join('')}
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+            ${state.categories.map(c => `
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius);transition:background .1s;border:1px solid var(--divider)" class="cat-row">
+                <div style="width:8px;height:8px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+                <div style="flex:1;font-size:var(--text-xs);font-weight:500">${esc(c.name)}</div>
+                ${!DEFAULT_CATEGORIES.find(d => d.name === c.name) ? `<button class="btn btn-ghost" data-remove-cat="${esc(c.name)}" style="font-size:10px;color:var(--text-tertiary);padding:0;height:auto">×</button>` : ''}
+              </div>
+            `).join('')}
+          </div>
         </div>
         <div class="quick-add" style="margin-top:8px;padding:6px 12px;border:1px solid var(--divider);border-radius:var(--radius-md)">
           <input class="input" placeholder="Neue Kategorie..." id="new-cat-input">
