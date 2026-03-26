@@ -50,7 +50,7 @@ export async function renderMeetingDetail(container, { id }) {
     mainContent = `
       <div style="background:var(--red-bg);border-radius:var(--radius-md);padding:16px;margin-bottom:16px">
         <div style="color:var(--red);font-weight:600;margin-bottom:8px">Fehler bei der Verarbeitung</div>
-        ${m.error_raw ? `<details><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary)">Details</summary><pre style="font-size:11px;white-space:pre-wrap;margin-top:6px">${esc(m.error_raw)}</pre></details>` : ''}
+        ${m.error_raw ? `<pre style="font-size:11px;white-space:pre-wrap;margin-top:6px;padding:10px;background:var(--bg-secondary);border-radius:var(--radius);max-height:200px;overflow:auto">${esc(m.error_raw)}</pre>` : '<div style="font-size:var(--text-sm);color:var(--text-secondary)">Kein Fehlerdetail vorhanden</div>'}
         <button class="btn btn-primary" id="retry-btn" style="margin-top:12px">Erneut versuchen</button>
       </div>
       ${audioHTML}`;
