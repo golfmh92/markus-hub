@@ -188,21 +188,37 @@ function bindMeetingDetailEvents(container, m) {
 
   container.querySelector('#start-pipeline')?.addEventListener('click', async () => {
     if (!pendingAudioBlob) return;
-    if (!state.userProfile.openai_key) { alert('Bitte OpenAI API Key in Einstellungen speichern.'); return; }
-    if (!state.userProfile.anthropic_key) { alert('Bitte Anthropic API Key in Einstellungen speichern.'); return; }
-    const blob = pendingAudioBlob;
-    const dur = pendingAudioDuration;
-    const ext = pendingAudioExt;
-    pendingAudioBlob = null;
-    await startPipeline(m.id, blob, dur, ext);
+    try {
+      const blob = pendingAudioBlob;
+      const dur = pendingAudioDuration;
+      const ext = pendingAudioExt;
+      pendingAudioBlob = null;
+      await startPipeline(m.id, blob, dur, ext);
+    } catch (e) {
+      console.error('[start-pipeline]', e);
+      await setMeetingError(m.id, 'Start-Fehler: ' + (e.message || String(e)));
+    }
     renderMeetingDetail(container, { id: m.id });
   });
 
   container.querySelector('#retry-btn')?.addEventListener('click', async () => {
-    if (!m.audio_path) return;
-    const { data: fileData } = await sb.storage.from('meeting-audio').download(m.audio_path);
-    if (!fileData) { alert('Audio nicht mehr verfügbar.'); return; }
-    await startPipeline(m.id, fileData, m.duration_seconds || 0, m.audio_path.split('.').pop());
+    try {
+      if (!m.audio_path) {
+        await setMeetingError(m.id, 'Kein Audio-Pfad vorhanden');
+        renderMeetingDetail(container, { id: m.id });
+        return;
+      }
+      const { data: fileData, error: dlError } = await sb.storage.from('meeting-audio').download(m.audio_path);
+      if (dlError || !fileData) {
+        await setMeetingError(m.id, 'Audio Download fehlgeschlagen: ' + (dlError?.message || 'Datei nicht gefunden'));
+        renderMeetingDetail(container, { id: m.id });
+        return;
+      }
+      await startPipeline(m.id, fileData, m.duration_seconds || 0, m.audio_path.split('.').pop());
+    } catch (e) {
+      console.error('[retry]', e);
+      await setMeetingError(m.id, 'Retry-Fehler: ' + (e.message || String(e)));
+    }
     renderMeetingDetail(container, { id: m.id });
   });
 }
