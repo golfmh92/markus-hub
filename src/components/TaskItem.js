@@ -27,6 +27,10 @@ export function taskHTML(t, { clickToEdit = true } = {}) {
 }
 
 export function bindTaskEvents(container) {
+  // Prevent duplicate listeners on same container
+  if (container._taskEventsBound) return;
+  container._taskEventsBound = true;
+
   container.addEventListener('click', async (e) => {
     // Toggle done
     const toggleEl = e.target.closest('[data-toggle-task]');
