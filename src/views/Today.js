@@ -4,6 +4,7 @@ import { today, fmtDate, fmtDateFull, greeting, daysFromNow, timeFromISO, dateFr
 import { taskHTML, bindTaskEvents } from '../components/TaskItem.js';
 import { CAL_COLORS } from '../services/calendar.js';
 import { navigate } from '../router.js';
+import { openTaskModal } from './Tasks.js';
 
 let todayFilter = null; // null = alles, 'today', 'week', 'overdue'
 
@@ -159,13 +160,13 @@ export function renderToday(container) {
 
   bindTaskEvents(container);
 
-  // Click task → navigate to tasks (open modal there)
+  // Click task → open modal directly on Today
   container.addEventListener('click', (e) => {
     if (e.target.closest('[data-toggle-task]')) return;
     if (e.target.closest('.inline-edit-input')) return;
     const editEl = e.target.closest('[data-edit-task]');
     if (editEl) {
-      navigate('tasks');
+      openTaskModal(editEl.dataset.editTask, container);
     }
   });
 

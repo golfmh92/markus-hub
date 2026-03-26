@@ -288,7 +288,7 @@ function bindModalEvents(container) {
   });
 }
 
-function openTaskModal(editId, container) {
+export function openTaskModal(editId, container) {
   // Ensure modal exists (append to body if not in DOM)
   let modal = document.getElementById('task-modal');
   if (!modal) {
