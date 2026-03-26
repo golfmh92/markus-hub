@@ -5,6 +5,7 @@ import { fmtDate, today } from '../lib/date.js';
 import { getMeeting, deleteMeeting, startPipeline, setMeetingError, loadMeetings } from '../services/meetings.js';
 import { navigate } from '../router.js';
 import { icons } from '../lib/icons.js';
+import { toastSuccess } from '../components/Toast.js';
 
 let currentMeeting = null;
 let mediaRecorder = null;
@@ -21,13 +22,18 @@ export async function renderMeetingDetail(container, { id }) {
   currentMeeting = m;
 
   const proj = state.projects.find(p => p.id === m.project_id);
-  const dur = m.duration_seconds ? `${Math.floor(m.duration_seconds / 60)} Min ${m.duration_seconds % 60} Sek` : '';
+  const durMin = m.duration_seconds ? Math.floor(m.duration_seconds / 60) : 0;
+  const durSec = m.duration_seconds ? m.duration_seconds % 60 : 0;
 
   let audioHTML = '';
   if (m.audio_path) {
     const { data: signedData } = await sb.storage.from('meeting-audio').createSignedUrl(m.audio_path, 3600);
     if (signedData?.signedUrl) {
-      audioHTML = `<audio controls style="width:100%;margin-bottom:16px;border-radius:var(--radius-md)" src="${signedData.signedUrl}"></audio>`;
+      audioHTML = `
+        <div class="meeting-audio-card">
+          <div class="meeting-audio-icon">🎧</div>
+          <audio controls src="${signedData.signedUrl}" style="flex:1;height:36px"></audio>
+        </div>`;
     }
   }
 
@@ -35,23 +41,24 @@ export async function renderMeetingDetail(container, { id }) {
   if (m.status === 'draft' || m.status === 'new') {
     mainContent = renderAudioCapture();
   } else if (m.status === 'transcribing' || m.status === 'summarizing') {
-    const label = m.status === 'transcribing' ? 'Transkribiere Audio...' : 'Erstelle Protokoll...';
+    const label = m.status === 'transcribing' ? 'Audio wird transkribiert...' : 'Protokoll wird erstellt...';
     const pct = m.status === 'transcribing' ? 40 : 75;
     mainContent = `
-      <div style="text-align:center;padding:32px 0;color:var(--text-secondary)">
-        <div class="spinner" style="margin:0 auto 12px"></div>
-        <div>${label}</div>
-        <div style="height:4px;background:var(--divider);border-radius:2px;margin:12px 0;overflow:hidden">
-          <div style="height:100%;background:var(--accent);border-radius:2px;width:${pct}%;transition:width .5s"></div>
+      <div class="meeting-processing">
+        <div class="meeting-processing-icon">${m.status === 'transcribing' ? '🎙' : '✨'}</div>
+        <div class="meeting-processing-label">${label}</div>
+        <div class="progress-bar" style="max-width:300px;margin:0 auto">
+          <div class="progress-bar-fill" style="width:${pct}%"></div>
         </div>
       </div>`;
     setTimeout(() => renderMeetingDetail(container, { id }), 3000);
   } else if (m.status === 'error') {
     mainContent = `
-      <div style="background:var(--red-bg);border-radius:var(--radius-md);padding:16px;margin-bottom:16px">
-        <div style="color:var(--red);font-weight:600;margin-bottom:8px">Fehler bei der Verarbeitung</div>
-        ${m.error_raw ? `<pre style="font-size:11px;white-space:pre-wrap;margin-top:6px;padding:10px;background:var(--bg-secondary);border-radius:var(--radius);max-height:200px;overflow:auto">${esc(m.error_raw)}</pre>` : '<div style="font-size:var(--text-sm);color:var(--text-secondary)">Kein Fehlerdetail vorhanden</div>'}
-        <button class="btn btn-primary" id="retry-btn" style="margin-top:12px">Erneut versuchen</button>
+      <div class="meeting-error">
+        <div style="font-size:20px;margin-bottom:8px">⚠️</div>
+        <div style="font-weight:600;margin-bottom:4px">Verarbeitung fehlgeschlagen</div>
+        ${m.error_raw ? `<pre class="meeting-error-detail">${esc(m.error_raw)}</pre>` : ''}
+        <button class="btn btn-primary" id="retry-btn" style="margin-top:16px">Erneut versuchen</button>
       </div>
       ${audioHTML}`;
   } else if (m.status === 'done') {
@@ -60,22 +67,22 @@ export async function renderMeetingDetail(container, { id }) {
 
   container.innerHTML = `
     <div class="page-inner">
-      <div class="breadcrumb">
-        <a data-back>Meetings</a>
-        <span class="breadcrumb-sep">/</span>
-        <span>${esc(m.title)}</span>
+      <div class="breadcrumb" style="margin-bottom:24px">
+        <a data-back>← Meetings</a>
       </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
-        <div>
-          <div class="page-title" style="font-size:var(--text-2xl)">${esc(m.title)}</div>
-          <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap">
+      <!-- Hero Header -->
+      <div class="meeting-hero">
+        <div class="meeting-hero-icon">🎙</div>
+        <div class="meeting-hero-body">
+          <h1 class="meeting-hero-title">${esc(m.title)}</h1>
+          <div class="meeting-hero-meta">
             <span>📅 ${fmtDate(m.meeting_date)}</span>
-            ${dur ? `<span>⏱ ${dur}</span>` : ''}
-            ${proj ? `<span class="badge" style="background:${proj.color}18;color:${proj.color}">${esc(proj.name)}</span>` : ''}
+            ${m.duration_seconds ? `<span>⏱ ${durMin}:${String(durSec).padStart(2, '0')}</span>` : ''}
+            ${proj ? `<span class="badge" style="background:${proj.color}15;color:${proj.color}">${esc(proj.name)}</span>` : ''}
           </div>
         </div>
-        <button class="btn btn-danger" id="delete-meeting-btn">${icons.trash}</button>
+        <button class="btn btn-ghost" id="delete-meeting-btn" style="align-self:start">${icons.trash}</button>
       </div>
 
       ${mainContent}
@@ -87,26 +94,29 @@ export async function renderMeetingDetail(container, { id }) {
 
 function renderAudioCapture() {
   return `
-    <div style="border:1px solid var(--divider);border-radius:var(--radius-md);padding:24px;text-align:center">
-      <div style="font-size:var(--text-sm);font-weight:600;margin-bottom:16px">Audio hinzufügen</div>
-      <div style="display:flex;gap:24px;justify-content:center">
-        <div style="text-align:center">
-          <button class="record-btn" id="record-btn">🎙</button>
-          <div id="record-timer" style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:8px">Aufnehmen</div>
+    <div class="meeting-capture">
+      <div class="meeting-capture-title">Audio aufnehmen oder hochladen</div>
+      <div class="meeting-capture-options">
+        <div class="meeting-capture-option">
+          <button class="meeting-record-btn" id="record-btn">
+            <span class="meeting-record-btn-inner">🎙</span>
+          </button>
+          <div id="record-timer" class="meeting-capture-label">Aufnehmen</div>
         </div>
-        <div style="text-align:center">
-          <label style="display:inline-flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer">
-            <div style="width:64px;height:64px;border-radius:50%;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:24px">📁</div>
-            <div style="font-size:var(--text-sm);color:var(--text-secondary)">Datei</div>
+        <div class="meeting-capture-divider"></div>
+        <div class="meeting-capture-option">
+          <label class="meeting-upload-btn">
+            <span class="meeting-upload-btn-inner">📁</span>
             <input type="file" accept=".mp3,.m4a,.wav,.mp4,.webm,audio/*" style="display:none" id="audio-file-input">
           </label>
+          <div class="meeting-capture-label">Datei wählen</div>
         </div>
       </div>
-      <div id="audio-preview" style="margin-top:16px;display:none">
-        <audio id="audio-preview-player" controls style="width:100%;border-radius:var(--radius-md)"></audio>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn btn-ghost" style="flex:1" id="discard-audio">Verwerfen</button>
-          <button class="btn btn-primary" style="flex:1" id="start-pipeline">Transkribieren & Zusammenfassen</button>
+      <div id="audio-preview" class="meeting-audio-preview" style="display:none">
+        <audio id="audio-preview-player" controls style="width:100%"></audio>
+        <div class="meeting-audio-preview-actions">
+          <button class="btn btn-ghost" id="discard-audio">Verwerfen</button>
+          <button class="btn btn-primary" id="start-pipeline">✨ Transkribieren & Zusammenfassen</button>
         </div>
       </div>
     </div>`;
@@ -114,31 +124,88 @@ function renderAudioCapture() {
 
 function renderResults(m, audioHTML) {
   const p = m.protocol || {};
-  const participants = (p.participants || []).join(', ') || '–';
-  const agenda = (p.agenda || []).map(a => `<li>${esc(a)}</li>`).join('') || '<li>–</li>';
-  const decisions = (p.decisions || []).map(d => `<li>${esc(d)}</li>`).join('') || '<li>–</li>';
-  const actionItems = (p.action_items || []).map((ai, i) => `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--divider)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:var(--text-sm)">${esc(ai.text)}</div>
-        ${ai.assignee ? `<div style="font-size:var(--text-xs);color:var(--text-secondary)">👤 ${esc(ai.assignee)}</div>` : ''}
-        ${ai.due ? `<div style="font-size:var(--text-xs);color:var(--text-secondary)">📅 ${fmtDate(ai.due)}</div>` : ''}
-      </div>
-    </div>
-  `).join('') || '<div style="color:var(--text-tertiary);font-size:var(--text-sm)">Keine Action Items</div>';
+  const participants = p.participants || [];
+  const agenda = p.agenda || [];
+  const decisions = p.decisions || [];
+  const actionItems = p.action_items || [];
 
   return `
+    <!-- Summary -->
+    ${m.summary ? `
+      <div class="meeting-summary">
+        <div class="meeting-summary-label">Zusammenfassung</div>
+        <div class="meeting-summary-text">${esc(m.summary)}</div>
+      </div>
+    ` : ''}
+
+    <!-- Audio Player -->
     ${audioHTML}
-    ${m.summary ? `<div class="summary-box">${esc(m.summary)}</div>` : ''}
-    <div class="protocol-section"><h3>Teilnehmer</h3><div style="font-size:var(--text-sm)">${esc(participants)}</div></div>
-    <div class="protocol-section"><h3>Agenda</h3><ul style="padding-left:16px;font-size:var(--text-sm)">${agenda}</ul></div>
-    <div class="protocol-section"><h3>Beschlüsse</h3><ul style="padding-left:16px;font-size:var(--text-sm)">${decisions}</ul></div>
-    <div class="protocol-section"><h3>Action Items</h3>${actionItems}</div>
+
+    <!-- Protocol Grid -->
+    <div class="meeting-protocol-grid">
+      ${participants.length ? `
+        <div class="meeting-protocol-card">
+          <div class="meeting-protocol-card-icon">👥</div>
+          <div class="meeting-protocol-card-title">Teilnehmer</div>
+          <div class="meeting-protocol-card-content">
+            ${participants.map(p => `<div class="meeting-participant">${esc(p)}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${agenda.length ? `
+        <div class="meeting-protocol-card">
+          <div class="meeting-protocol-card-icon">📋</div>
+          <div class="meeting-protocol-card-title">Agenda</div>
+          <div class="meeting-protocol-card-content">
+            ${agenda.map(a => `<div class="meeting-agenda-item">• ${esc(a)}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${decisions.length && decisions[0] !== '–' ? `
+        <div class="meeting-protocol-card">
+          <div class="meeting-protocol-card-icon">⚡</div>
+          <div class="meeting-protocol-card-title">Beschlüsse</div>
+          <div class="meeting-protocol-card-content">
+            ${decisions.map(d => `<div class="meeting-decision-item">✓ ${esc(d)}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${actionItems.length ? `
+        <div class="meeting-protocol-card meeting-protocol-card-full">
+          <div class="meeting-protocol-card-icon">🎯</div>
+          <div class="meeting-protocol-card-title">Action Items</div>
+          <div class="meeting-protocol-card-content">
+            ${actionItems.map((ai, i) => `
+              <div class="meeting-action-item">
+                <div class="meeting-action-item-check"></div>
+                <div class="meeting-action-item-body">
+                  <div class="meeting-action-item-text">${esc(ai.text)}</div>
+                  <div class="meeting-action-item-meta">
+                    ${ai.assignee ? `<span>👤 ${esc(ai.assignee)}</span>` : ''}
+                    ${ai.due ? `<span>📅 ${fmtDate(ai.due)}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Transcript -->
     ${m.transcript ? `
-      <details style="margin-top:16px">
-        <summary style="cursor:pointer;font-size:var(--text-sm);color:var(--text-secondary);padding:8px 0">Transkript anzeigen</summary>
-        <div style="font-size:var(--text-sm);line-height:1.7;color:var(--text-secondary);white-space:pre-wrap">${esc(m.transcript)}</div>
-      </details>
+      <div class="meeting-transcript">
+        <details>
+          <summary class="meeting-transcript-toggle">
+            <span>📝 Vollständiges Transkript</span>
+            <span style="font-size:var(--text-xs);color:var(--text-tertiary)">Klicken zum Aufklappen</span>
+          </summary>
+          <div class="meeting-transcript-text">${esc(m.transcript)}</div>
+        </details>
+      </div>
     ` : ''}
   `;
 }
@@ -148,6 +215,7 @@ function bindMeetingDetailEvents(container, m) {
 
   container.querySelector('#delete-meeting-btn')?.addEventListener('click', async () => {
     await deleteMeeting(m.id);
+    toastSuccess('Meeting gelöscht');
     navigate('meetings');
   });
 
@@ -241,7 +309,9 @@ async function startRecording(container) {
     };
     mediaRecorder.start(1000);
     const btn = container.querySelector('#record-btn');
-    if (btn) { btn.classList.add('recording'); btn.textContent = '⏹'; }
+    if (btn) { btn.classList.add('recording'); }
+    const inner = btn?.querySelector('.meeting-record-btn-inner');
+    if (inner) inner.textContent = '⏹';
     recordingTimer = setInterval(() => {
       recordingSeconds++;
       const mm = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
@@ -250,7 +320,7 @@ async function startRecording(container) {
       if (timer) timer.textContent = `${mm}:${ss}`;
     }, 1000);
   } catch {
-    alert('Mikrofonzugriff verweigert');
+    toastSuccess('Mikrofonzugriff verweigert');
   }
 }
 
@@ -258,7 +328,9 @@ function stopRecording(container) {
   if (mediaRecorder) mediaRecorder.stop();
   clearInterval(recordingTimer);
   const btn = container.querySelector('#record-btn');
-  if (btn) { btn.classList.remove('recording'); btn.textContent = '🎙'; }
+  if (btn) btn.classList.remove('recording');
+  const inner = btn?.querySelector('.meeting-record-btn-inner');
+  if (inner) inner.textContent = '🎙';
   const timer = container.querySelector('#record-timer');
   if (timer) timer.textContent = 'Aufnehmen';
 }
