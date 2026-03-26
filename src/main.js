@@ -134,20 +134,21 @@ async function onReady() {
   initKeyboardShortcuts();
   initPush();
 
-  // Poll for changes every 10s (Realtime disabled due to WebSocket issues)
-  setInterval(async () => {
-    if (!document.hidden) {
-      await Promise.all([loadTasks(), loadProjects(), loadNotes(), loadCalendarEvents()]);
-      const page = document.getElementById('page');
-      if (page) renderCurrentRoute(page);
-      renderDock();
-    }
-  }, 10000);
+  // Realtime: update data silently, only re-render if no modal is open
+  initRealtime(() => {
+    // Don't re-render if a modal is open (user is editing)
+    if (document.querySelector('.modal-overlay.open')) return;
+    const page = document.getElementById('page');
+    if (page) renderCurrentRoute(page);
+    renderDock();
+  });
 
-  // Also refresh when tab becomes visible again
+  // Refresh data when tab becomes visible (catch up after being away)
   document.addEventListener('visibilitychange', async () => {
     if (!document.hidden) {
       await Promise.all([loadTasks(), loadProjects(), loadNotes(), loadCalendarEvents()]);
+      // Don't re-render if a modal is open
+      if (document.querySelector('.modal-overlay.open')) return;
       const page = document.getElementById('page');
       if (page) renderCurrentRoute(page);
       renderDock();

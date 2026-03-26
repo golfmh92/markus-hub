@@ -27,11 +27,15 @@ export function taskHTML(t, { clickToEdit = true } = {}) {
 }
 
 export function bindTaskEvents(container) {
-  // Prevent duplicate listeners on same container
-  if (container._taskEventsBound) return;
-  container._taskEventsBound = true;
+  // Remove old listener if exists, then rebind
+  if (container._taskClickHandler) {
+    container.removeEventListener('click', container._taskClickHandler);
+  }
+  if (container._taskDblClickHandler) {
+    container.removeEventListener('dblclick', container._taskDblClickHandler);
+  }
 
-  container.addEventListener('click', async (e) => {
+  container._taskClickHandler = async (e) => {
     // Toggle done
     const toggleEl = e.target.closest('[data-toggle-task]');
     if (toggleEl) {
@@ -55,10 +59,11 @@ export function bindTaskEvents(container) {
       await toggleTask(toggleEl.dataset.toggleTask);
       return;
     }
-  });
+  };
+  container.addEventListener('click', container._taskClickHandler);
 
   // Double-click for inline title editing
-  container.addEventListener('dblclick', (e) => {
+  container._taskDblClickHandler = (e) => {
     const titleEl = e.target.closest('[data-inline-title]');
     if (!titleEl) return;
     e.preventDefault();
@@ -93,5 +98,6 @@ export function bindTaskEvents(container) {
       if (e.key === 'Escape') finish(false);
     });
     input.addEventListener('blur', () => finish(true));
-  });
+  };
+  container.addEventListener('dblclick', container._taskDblClickHandler);
 }
