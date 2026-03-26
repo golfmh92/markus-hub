@@ -159,6 +159,16 @@ export function renderToday(container) {
 
   bindTaskEvents(container);
 
+  // Click task → navigate to tasks (open modal there)
+  container.addEventListener('click', (e) => {
+    if (e.target.closest('[data-toggle-task]')) return;
+    if (e.target.closest('.inline-edit-input')) return;
+    const editEl = e.target.closest('[data-edit-task]');
+    if (editEl) {
+      navigate('tasks');
+    }
+  });
+
   // Stat filter clicks
   container.querySelectorAll('[data-stat-filter]').forEach(el => {
     el.addEventListener('click', () => {
