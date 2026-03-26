@@ -55,7 +55,7 @@ export async function setMeetingError(id, msg, rawResponse = null) {
   console.error('[pipeline error]', msg);
   await sb.from('hub_meetings').update({
     status: 'error',
-    error_raw: rawResponse || null,
+    error_raw: rawResponse || msg,
     updated_at: new Date().toISOString(),
   }).eq('id', id);
 }
