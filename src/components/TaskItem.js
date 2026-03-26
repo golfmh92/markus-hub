@@ -37,6 +37,16 @@ export function bindTaskEvents(container) {
       if (taskItem && !taskItem.classList.contains('done')) {
         taskItem.classList.add('just-done');
         toastSuccess('Task erledigt');
+        // Fade out and remove after 1.5s
+        setTimeout(() => {
+          taskItem.style.transition = 'opacity 0.4s, max-height 0.4s, padding 0.4s, margin 0.4s';
+          taskItem.style.opacity = '0';
+          taskItem.style.maxHeight = '0';
+          taskItem.style.padding = '0 10px';
+          taskItem.style.margin = '0';
+          taskItem.style.overflow = 'hidden';
+          setTimeout(() => taskItem.remove(), 400);
+        }, 1200);
       }
       await toggleTask(toggleEl.dataset.toggleTask);
       return;
