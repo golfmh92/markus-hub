@@ -122,9 +122,14 @@ export function renderTasks(container) {
       <!-- Mobile FAB -->
       <button id="new-task-fab" style="position:fixed;bottom:88px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent-gradient);color:#fff;border:none;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(99,102,241,0.3);cursor:pointer;z-index:50">+</button>
     </div>
-
-    ${taskModalHTML()}
   `;
+
+  // Ensure modal is in the DOM (outside page container so re-renders don't destroy it)
+  if (!document.getElementById('task-modal')) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = taskModalHTML();
+    document.body.appendChild(wrapper.firstElementChild);
+  }
 
   bindTaskEvents(container);
   bindTaskViewEvents(container);
@@ -222,35 +227,48 @@ function bindTaskViewEvents(container) {
     renderTasks(container);
   });
 
-  // Edit task (click on body)
+  // Edit task (click on task item — but not checkbox, not inside modal)
   container.addEventListener('click', (e) => {
+    if (e.target.closest('.modal-overlay')) return;
+    if (e.target.closest('[data-toggle-task]')) return;
+    if (e.target.closest('.inline-edit-input')) return;
     const editEl = e.target.closest('[data-edit-task]');
     if (editEl) {
+      e.stopPropagation();
       openTaskModal(editEl.dataset.editTask, container);
     }
   });
 
   // Modal events
-  container.querySelector('#tm-save')?.addEventListener('click', async () => {
-    const id = container.querySelector('#task-edit-id').value;
+  bindModalEvents(container);
+}
+
+function bindModalEvents(container) {
+  const modal = document.getElementById('task-modal');
+  if (!modal || modal._bound) return;
+  modal._bound = true;
+
+  const g = id => document.getElementById(id);
+
+  modal.querySelector('#tm-save')?.addEventListener('click', async () => {
     await saveTask({
-      id: id || undefined,
-      title: container.querySelector('#tm-title').value.trim(),
-      description: container.querySelector('#tm-desc').value.trim() || null,
-      category: container.querySelector('#tm-cat').value,
-      priority: container.querySelector('#tm-priority').value,
-      due_date: container.querySelector('#tm-due').value || null,
-      project_id: container.querySelector('#tm-project').value || null,
+      id: g('task-edit-id')?.value || undefined,
+      title: g('tm-title')?.value?.trim(),
+      description: g('tm-desc')?.value?.trim() || null,
+      category: g('tm-cat')?.value,
+      priority: g('tm-priority')?.value,
+      due_date: g('tm-due')?.value || null,
+      project_id: g('tm-project')?.value || null,
     });
     closeModal('task-modal');
     toastSuccess('Task gespeichert');
     renderTasks(container);
   });
 
-  container.querySelector('#tm-cancel')?.addEventListener('click', () => closeModal('task-modal'));
+  modal.querySelector('#tm-cancel')?.addEventListener('click', () => closeModal('task-modal'));
 
-  container.querySelector('#tm-delete')?.addEventListener('click', async () => {
-    const id = container.querySelector('#task-edit-id').value;
+  modal.querySelector('#tm-delete')?.addEventListener('click', async () => {
+    const id = g('task-edit-id')?.value;
     if (id) {
       await deleteTask(id);
       closeModal('task-modal');
@@ -260,22 +278,33 @@ function bindTaskViewEvents(container) {
   });
 
   // Quick date buttons
-  container.querySelectorAll('[data-quick-date]').forEach(btn => {
+  modal.querySelectorAll('[data-quick-date]').forEach(btn => {
     btn.addEventListener('click', () => {
       const days = parseInt(btn.dataset.quickDate);
       const d = new Date();
       d.setDate(d.getDate() + days);
-      container.querySelector('#tm-due').value = d.toISOString().split('T')[0];
+      g('tm-due').value = d.toISOString().split('T')[0];
     });
   });
 }
 
 function openTaskModal(editId, container) {
-  const modal = container.querySelector('#task-modal');
+  // Ensure modal exists (append to body if not in DOM)
+  let modal = document.getElementById('task-modal');
+  if (!modal) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = taskModalHTML();
+    document.body.appendChild(wrapper.firstElementChild);
+    modal = document.getElementById('task-modal');
+    // Rebind modal events
+    bindModalEvents(container);
+  }
   if (!modal) return;
 
-  const catSelect = container.querySelector('#tm-cat');
-  const projSelect = container.querySelector('#tm-project');
+  const $ = id => document.getElementById(id) || document.querySelector(id);
+  const catSelect = $('tm-cat');
+  const projSelect = $('tm-project');
+  if (!catSelect || !projSelect) return;
   catSelect.innerHTML = state.categories.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
   projSelect.innerHTML = '<option value="">– Kein Projekt –</option>' +
     state.projects.filter(p => !p.archived).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
@@ -283,25 +312,25 @@ function openTaskModal(editId, container) {
   if (editId) {
     const t = state.tasks.find(t => t.id === editId);
     if (!t) return;
-    container.querySelector('#task-modal-title').textContent = 'Task bearbeiten';
-    container.querySelector('#task-edit-id').value = t.id;
-    container.querySelector('#tm-title').value = t.title;
-    container.querySelector('#tm-desc').value = t.description || '';
+    $('task-modal-title').textContent = 'Task bearbeiten';
+    $('task-edit-id').value = t.id;
+    $('tm-title').value = t.title;
+    $('tm-desc').value = t.description || '';
     catSelect.value = t.category;
-    container.querySelector('#tm-priority').value = t.priority;
-    container.querySelector('#tm-due').value = t.due_date || '';
+    $('tm-priority').value = t.priority;
+    $('tm-due').value = t.due_date || '';
     projSelect.value = t.project_id || '';
-    container.querySelector('#tm-delete').style.display = 'block';
+    $('tm-delete').style.display = 'block';
   } else {
-    container.querySelector('#task-modal-title').textContent = 'Neuer Task';
-    container.querySelector('#task-edit-id').value = '';
-    container.querySelector('#tm-title').value = '';
-    container.querySelector('#tm-desc').value = '';
+    $('task-modal-title').textContent = 'Neuer Task';
+    $('task-edit-id').value = '';
+    $('tm-title').value = '';
+    $('tm-desc').value = '';
     catSelect.value = state.categories[0]?.name || '';
-    container.querySelector('#tm-priority').value = 'normal';
-    container.querySelector('#tm-due').value = today();
+    $('tm-priority').value = 'normal';
+    $('tm-due').value = today();
     projSelect.value = '';
-    container.querySelector('#tm-delete').style.display = 'none';
+    $('tm-delete').style.display = 'none';
   }
 
   openModal('task-modal');

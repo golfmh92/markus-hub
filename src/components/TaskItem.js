@@ -36,6 +36,9 @@ export function bindTaskEvents(container) {
   }
 
   container._taskClickHandler = async (e) => {
+    // Ignore clicks inside modals
+    if (e.target.closest('.modal-overlay')) return;
+
     // Toggle done
     const toggleEl = e.target.closest('[data-toggle-task]');
     if (toggleEl) {
