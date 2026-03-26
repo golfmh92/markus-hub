@@ -18,14 +18,16 @@ export function renderSettings(container) {
     <div class="page-inner">
       <div class="page-title" style="margin-bottom: 24px;">Einstellungen</div>
 
-      <!-- Profile -->
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:32px">
-        <div style="width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff">
-          ${(state.currentUser?.email || '?')[0].toUpperCase()}
-        </div>
-        <div>
-          <div style="font-size:var(--text-base);font-weight:600">${esc(state.currentUser?.email)}</div>
-          <div style="font-size:var(--text-sm);color:var(--text-secondary)">${open} offene Tasks · ${done} erledigt · ${state.projects.length} Projekte</div>
+      <!-- Profile Hero -->
+      <div class="widget" style="margin-bottom:24px;overflow:hidden">
+        <div style="background:var(--accent-gradient);padding:24px 20px;display:flex;align-items:center;gap:16px">
+          <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;backdrop-filter:blur(8px)">
+            ${(state.currentUser?.email || '?')[0].toUpperCase()}
+          </div>
+          <div style="color:#fff">
+            <div style="font-size:var(--text-base);font-weight:600">${esc(state.currentUser?.email)}</div>
+            <div style="font-size:var(--text-sm);opacity:0.8">${open} offen · ${done} erledigt · ${state.projects.length} Projekte · ${state.notes.length} Notizen</div>
+          </div>
         </div>
       </div>
 

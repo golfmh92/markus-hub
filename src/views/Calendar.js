@@ -55,19 +55,43 @@ export function renderCalendar(container) {
     !calHidden.includes(e.calendar_name) && dateFromISO(e.start_at) === calSelectedDate
   ).sort((a, b) => (a.start_at || '').localeCompare(b.start_at || ''));
 
+  const totalEvents = visEvents.length;
+  const todayEvents = visEvents.filter(e => dateFromISO(e.start_at) === td).length;
+
   container.innerHTML = `
     <div class="page-inner">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div class="page-title">Kalender</div>
+      <div class="view-header">
+        <div class="view-header-left">
+          <div class="page-title">Kalender</div>
+        </div>
         <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn btn-ghost" id="cal-prev">${'‹'}</button>
-          <span style="font-size:var(--text-sm);font-weight:600;min-width:120px;text-align:center">${monthNames[m]} ${y}</span>
-          <button class="btn btn-ghost" id="cal-next">${'›'}</button>
-          <button class="btn btn-ghost" id="cal-today" style="margin-left:8px">Heute</button>
+          <button class="btn btn-ghost" id="cal-prev" style="font-size:18px;width:32px;height:32px;padding:0">‹</button>
+          <span style="font-size:var(--text-sm);font-weight:700;min-width:130px;text-align:center">${monthNames[m]} ${y}</span>
+          <button class="btn btn-ghost" id="cal-next" style="font-size:18px;width:32px;height:32px;padding:0">›</button>
+          <button class="btn btn-secondary" id="cal-today" style="margin-left:4px;height:28px;font-size:var(--text-xs)">Heute</button>
         </div>
       </div>
 
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+      <!-- Calendar Stats -->
+      <div class="stats-row" style="margin-bottom:16px">
+        <div class="stat-card-v2" style="--stat-color:var(--accent);--stat-bg:var(--accent-bg)">
+          <div class="stat-card-v2-num">${todayEvents}</div>
+          <div class="stat-card-v2-label">Heute</div>
+          <div class="stat-card-v2-icon">📅</div>
+        </div>
+        <div class="stat-card-v2" style="--stat-color:var(--purple);--stat-bg:var(--purple-bg)">
+          <div class="stat-card-v2-num">${totalEvents}</div>
+          <div class="stat-card-v2-label">Diesen Monat</div>
+          <div class="stat-card-v2-icon">📆</div>
+        </div>
+        <div class="stat-card-v2" style="--stat-color:var(--text-secondary);--stat-bg:var(--bg-secondary)">
+          <div class="stat-card-v2-num">${allCals.length}</div>
+          <div class="stat-card-v2-label">Kalender</div>
+          <div class="stat-card-v2-icon">🗂</div>
+        </div>
+      </div>
+
+      <div class="filter-toolbar" style="margin-bottom:16px">
         ${allCals.map(c => {
           const col = CAL_COLORS[c] || 'var(--accent)';
           const active = !calHidden.includes(c);
@@ -75,10 +99,17 @@ export function renderCalendar(container) {
         }).join('')}
       </div>
 
-      <div class="cal-grid" id="cal-grid">${gridHTML}</div>
+      <div class="widget" style="margin-bottom:20px">
+        <div class="widget-body" style="padding:12px">
+          <div class="cal-grid" id="cal-grid">${gridHTML}</div>
+        </div>
+      </div>
 
-      <div style="margin-top:24px">
-        <div class="section-label" style="margin-bottom:10px">${fmtDateLong(calSelectedDate)} ${selectedEvents.length ? `(${selectedEvents.length})` : ''}</div>
+      <div class="widget">
+        <div class="widget-header" style="background:linear-gradient(135deg, #3b82f610, #3b82f605)">
+          <div class="widget-header-title"><span style="font-size:16px">📅</span> ${fmtDateLong(calSelectedDate)} <span class="widget-header-count">${selectedEvents.length}</span></div>
+        </div>
+        <div class="widget-body-flush">
         ${selectedEvents.length
           ? selectedEvents.map(e => {
               const color = CAL_COLORS[e.calendar_name] || 'var(--accent)';
@@ -93,7 +124,8 @@ export function renderCalendar(container) {
                   <div class="cal-event-time">${time}</div>
                 </div>`;
             }).join('')
-          : '<div style="color:var(--text-tertiary);font-size:var(--text-sm);padding:8px 0">Keine Termine</div>'}
+          : '<div class="widget-empty">Keine Termine an diesem Tag</div>'}
+        </div>
       </div>
     </div>
   `;

@@ -19,14 +19,36 @@ export function renderProjects(container) {
     taskCounts[t.project_id] = (taskCounts[t.project_id] || 0) + 1;
   });
 
+  const activeCount = state.projects.filter(p => !p.archived).length;
+  const archivedCount = state.projects.filter(p => p.archived).length;
+  const totalProjectTasks = state.tasks.filter(t => t.project_id && !t.done).length;
+
   container.innerHTML = `
     <div class="page-inner">
       <div class="view-header">
         <div class="view-header-left">
           <div class="page-title">Projekte</div>
-          <span class="view-header-count">${filtered.length}</span>
         </div>
         <button class="btn btn-primary" id="new-project-btn" style="height:28px;font-size:var(--text-xs)">+ Neues Projekt</button>
+      </div>
+
+      <!-- Project Stats -->
+      <div class="stats-row" style="margin-bottom:16px">
+        <div class="stat-card-v2" style="--stat-color:var(--accent);--stat-bg:var(--accent-bg)">
+          <div class="stat-card-v2-num">${activeCount}</div>
+          <div class="stat-card-v2-label">Aktiv</div>
+          <div class="stat-card-v2-icon">📂</div>
+        </div>
+        <div class="stat-card-v2" style="--stat-color:var(--orange);--stat-bg:var(--orange-bg)">
+          <div class="stat-card-v2-num">${totalProjectTasks}</div>
+          <div class="stat-card-v2-label">Offene Tasks</div>
+          <div class="stat-card-v2-icon">📋</div>
+        </div>
+        <div class="stat-card-v2" style="--stat-color:var(--text-tertiary);--stat-bg:var(--bg-secondary)">
+          <div class="stat-card-v2-num">${archivedCount}</div>
+          <div class="stat-card-v2-label">Archiviert</div>
+          <div class="stat-card-v2-icon">📦</div>
+        </div>
       </div>
 
       <div class="filter-toolbar" style="margin-bottom:16px">

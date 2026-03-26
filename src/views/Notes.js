@@ -17,12 +17,27 @@ export function renderNotes(container) {
   if (search) filtered = filtered.filter(n => n.content.toLowerCase().includes(search));
   filtered.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.created_at) - new Date(a.created_at));
 
+  const pinnedCount = state.notes.filter(n => n.pinned).length;
+
   container.innerHTML = `
     <div class="page-inner">
       <div class="view-header">
         <div class="view-header-left">
           <div class="page-title">Notizen</div>
-          <span class="view-header-count">${state.notes.length}</span>
+        </div>
+      </div>
+
+      <!-- Note Stats -->
+      <div class="stats-row" style="margin-bottom:16px">
+        <div class="stat-card-v2" style="--stat-color:var(--accent);--stat-bg:var(--accent-bg)">
+          <div class="stat-card-v2-num">${state.notes.length}</div>
+          <div class="stat-card-v2-label">Gesamt</div>
+          <div class="stat-card-v2-icon">📝</div>
+        </div>
+        <div class="stat-card-v2" style="--stat-color:var(--purple);--stat-bg:var(--purple-bg)">
+          <div class="stat-card-v2-num">${pinnedCount}</div>
+          <div class="stat-card-v2-label">Angepinnt</div>
+          <div class="stat-card-v2-icon">📌</div>
         </div>
       </div>
 

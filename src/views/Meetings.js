@@ -17,9 +17,22 @@ export function renderMeetings(container) {
       <div class="view-header">
         <div class="view-header-left">
           <div class="page-title">Meetings</div>
-          <span class="view-header-count">${filtered.length}</span>
         </div>
         <button class="btn btn-primary" id="new-meeting-btn" style="height:28px;font-size:var(--text-xs)">+ Neues Meeting</button>
+      </div>
+
+      <!-- Meeting Stats -->
+      <div class="stats-row" style="margin-bottom:16px">
+        <div class="stat-card-v2" style="--stat-color:var(--accent);--stat-bg:var(--accent-bg)">
+          <div class="stat-card-v2-num">${state.meetings.length}</div>
+          <div class="stat-card-v2-label">Gesamt</div>
+          <div class="stat-card-v2-icon">🎙</div>
+        </div>
+        <div class="stat-card-v2" style="--stat-color:var(--green);--stat-bg:var(--green-bg)">
+          <div class="stat-card-v2-num">${state.meetings.filter(m => m.status === 'done').length}</div>
+          <div class="stat-card-v2-label">Protokolliert</div>
+          <div class="stat-card-v2-icon">✅</div>
+        </div>
       </div>
 
       <div class="filter-toolbar" style="margin-bottom:16px">

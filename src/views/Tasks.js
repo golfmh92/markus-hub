@@ -47,13 +47,42 @@ export function renderTasks(container) {
 
   const total = state.tasks.filter(t => !t.done).length;
 
+  const doneTasks = state.tasks.filter(t => t.done).length;
+  const todayDue = state.tasks.filter(t => !t.done && t.due_date === td).length;
+  const overdueTasks = state.tasks.filter(t => !t.done && t.due_date && t.due_date < td).length;
+
   container.innerHTML = `
     <div class="page-inner">
       <div class="view-header">
         <div class="view-header-left">
           <div class="page-title">Tasks</div>
-          <span class="view-header-count">${total} offen</span>
         </div>
+      </div>
+
+      <!-- Task Stats -->
+      <div class="stats-row" style="margin-bottom:16px">
+        <div class="stat-card-v2" style="--stat-color:var(--accent);--stat-bg:var(--accent-bg)">
+          <div class="stat-card-v2-num">${total}</div>
+          <div class="stat-card-v2-label">Offen</div>
+          <div class="stat-card-v2-icon">📋</div>
+        </div>
+        <div class="stat-card-v2" style="--stat-color:var(--green);--stat-bg:var(--green-bg)">
+          <div class="stat-card-v2-num">${doneTasks}</div>
+          <div class="stat-card-v2-label">Erledigt</div>
+          <div class="stat-card-v2-icon">✅</div>
+        </div>
+        <div class="stat-card-v2" style="--stat-color:var(--orange);--stat-bg:var(--orange-bg)">
+          <div class="stat-card-v2-num">${todayDue}</div>
+          <div class="stat-card-v2-label">Heute</div>
+          <div class="stat-card-v2-icon">📅</div>
+        </div>
+        ${overdueTasks > 0 ? `
+          <div class="stat-card-v2" style="--stat-color:var(--red);--stat-bg:var(--red-bg)">
+            <div class="stat-card-v2-num">${overdueTasks}</div>
+            <div class="stat-card-v2-label">Überfällig</div>
+            <div class="stat-card-v2-icon">⚠️</div>
+          </div>
+        ` : ''}
       </div>
 
       <div class="quick-add-box">
