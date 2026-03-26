@@ -72,13 +72,14 @@ export async function transcribeAudio(blob, ext, meetingId) {
       body: formData,
     });
     if (!res.ok) {
-      await setMeetingError(meetingId, await res.text());
+      const errText = await res.text();
+      await setMeetingError(meetingId, `Whisper Fehler (${res.status}): ${errText}`);
       return null;
     }
     const data = await res.json();
     return data.text || '';
   } catch (e) {
-    await setMeetingError(meetingId, e.message);
+    await setMeetingError(meetingId, 'Whisper Netzwerk-Fehler: ' + e.message);
     return null;
   }
 }
@@ -115,7 +116,8 @@ ${transcript}`;
       }),
     });
     if (!res.ok) {
-      await setMeetingError(meetingId, await res.text());
+      const errText = await res.text();
+      await setMeetingError(meetingId, `Claude API Fehler (${res.status}): ${errText}`);
       return null;
     }
     const data = await res.json();
@@ -123,47 +125,62 @@ ${transcript}`;
     try {
       return JSON.parse(text);
     } catch {
-      await setMeetingError(meetingId, 'Claude returned invalid JSON', text);
+      await setMeetingError(meetingId, 'Claude hat kein gültiges JSON zurückgegeben', text);
       return null;
     }
   } catch (e) {
-    await setMeetingError(meetingId, e.message);
+    await setMeetingError(meetingId, 'Claude Netzwerk-Fehler: ' + e.message);
     return null;
   }
 }
 
 export async function startPipeline(meetingId, audioBlob, duration, ext) {
-  const userId = state.currentUser.id;
-  const audioPath = `${userId}/${meetingId}.${ext}`;
+  try {
+    // Check API keys first
+    if (!state.userProfile.openai_key) {
+      await setMeetingError(meetingId, 'OpenAI API Key fehlt. Bitte in Einstellungen hinterlegen.');
+      return;
+    }
+    if (!state.userProfile.anthropic_key) {
+      await setMeetingError(meetingId, 'Anthropic API Key fehlt. Bitte in Einstellungen hinterlegen.');
+      return;
+    }
 
-  // Upload
-  const { error: uploadError } = await sb.storage.from('meeting-audio').upload(audioPath, audioBlob, {
-    contentType: audioBlob.type || `audio/${ext}`,
-    upsert: true,
-  });
-  if (uploadError) {
-    await setMeetingError(meetingId, uploadError.message);
-    return;
+    const userId = state.currentUser.id;
+    const audioPath = `${userId}/${meetingId}.${ext}`;
+
+    // Upload
+    const { error: uploadError } = await sb.storage.from('meeting-audio').upload(audioPath, audioBlob, {
+      contentType: audioBlob.type || `audio/${ext}`,
+      upsert: true,
+    });
+    if (uploadError) {
+      await setMeetingError(meetingId, 'Upload fehlgeschlagen: ' + uploadError.message);
+      return;
+    }
+
+    await updateMeetingStatus(meetingId, 'transcribing', {
+      audio_path: audioPath,
+      duration_seconds: duration || null,
+    });
+
+    // Transcribe
+    const transcript = await transcribeAudio(audioBlob, ext, meetingId);
+    if (!transcript) return; // error already set in transcribeAudio
+
+    await updateMeetingStatus(meetingId, 'summarizing', { transcript });
+
+    // Summarize
+    const result = await summarizeWithClaude(transcript, meetingId);
+    if (!result) return; // error already set in summarizeWithClaude
+
+    await updateMeetingStatus(meetingId, 'done', {
+      summary: result.summary,
+      protocol: result,
+    });
+    await loadMeetings();
+  } catch (e) {
+    console.error('[startPipeline]', e);
+    await setMeetingError(meetingId, 'Pipeline-Fehler: ' + (e.message || String(e)));
   }
-
-  await updateMeetingStatus(meetingId, 'transcribing', {
-    audio_path: audioPath,
-    duration_seconds: duration || null,
-  });
-
-  // Transcribe
-  const transcript = await transcribeAudio(audioBlob, ext, meetingId);
-  if (!transcript) return;
-
-  await updateMeetingStatus(meetingId, 'summarizing', { transcript });
-
-  // Summarize
-  const result = await summarizeWithClaude(transcript, meetingId);
-  if (!result) return;
-
-  await updateMeetingStatus(meetingId, 'done', {
-    summary: result.summary,
-    protocol: result,
-  });
-  await loadMeetings();
 }
