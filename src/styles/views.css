@@ -77,6 +77,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  align-items: start;
 }
 
 .dashboard-grid .widget-full {
@@ -137,6 +138,51 @@
   font-size: var(--text-xs);
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+/* === Stat Cards V2 (colored, bold) === */
+.stat-card-v2 {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: var(--stat-bg, var(--bg-secondary));
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.15s;
+}
+
+.stat-card-v2:hover {
+  border-color: var(--stat-color);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--stat-color) 15%, transparent);
+}
+
+.stat-card-v2-active {
+  border-color: var(--stat-color);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--stat-color) 20%, transparent);
+}
+
+.stat-card-v2-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--stat-color);
+  line-height: 1;
+}
+
+.stat-card-v2-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.stat-card-v2-icon {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 24px;
+  opacity: 0.3;
 }
 
 .stat-pill-active {

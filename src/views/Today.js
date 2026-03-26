@@ -35,26 +35,20 @@ export function renderToday(container) {
 
       <!-- Stats -->
       <div class="stats-row">
-        <div class="stat-pill ${todayFilter === 'today' ? 'stat-pill-active' : ''}" style="cursor:pointer" data-stat-filter="today">
-          <div class="stat-pill-icon" style="background:var(--accent-bg);color:var(--accent)">📋</div>
-          <div>
-            <div class="stat-pill-num" style="color:var(--accent)">${todayTasks.length}</div>
-            <div class="stat-pill-label">Heute offen</div>
-          </div>
+        <div class="stat-card-v2 ${todayFilter === 'today' ? 'stat-card-v2-active' : ''}" style="cursor:pointer;--stat-color:var(--accent);--stat-bg:var(--accent-bg)" data-stat-filter="today">
+          <div class="stat-card-v2-num">${todayTasks.length}</div>
+          <div class="stat-card-v2-label">Heute offen</div>
+          <div class="stat-card-v2-icon">📋</div>
         </div>
-        <div class="stat-pill ${todayFilter === 'week' ? 'stat-pill-active' : ''}" style="cursor:pointer" data-stat-filter="week">
-          <div class="stat-pill-icon" style="background:var(--orange-bg);color:var(--orange)">📅</div>
-          <div>
-            <div class="stat-pill-num" style="color:var(--orange)">${weekTasks.length}</div>
-            <div class="stat-pill-label">Diese Woche</div>
-          </div>
+        <div class="stat-card-v2 ${todayFilter === 'week' ? 'stat-card-v2-active' : ''}" style="cursor:pointer;--stat-color:var(--orange);--stat-bg:var(--orange-bg)" data-stat-filter="week">
+          <div class="stat-card-v2-num">${weekTasks.length}</div>
+          <div class="stat-card-v2-label">Diese Woche</div>
+          <div class="stat-card-v2-icon">📅</div>
         </div>
-        <div class="stat-pill ${todayFilter === 'overdue' ? 'stat-pill-active' : ''}" style="cursor:pointer" data-stat-filter="overdue">
-          <div class="stat-pill-icon" style="background:var(--red-bg);color:var(--red)">⚠</div>
-          <div>
-            <div class="stat-pill-num" style="color:var(--red)">${overdue.length}</div>
-            <div class="stat-pill-label">Überfällig</div>
-          </div>
+        <div class="stat-card-v2 ${todayFilter === 'overdue' ? 'stat-card-v2-active' : ''}" style="cursor:pointer;--stat-color:var(--red);--stat-bg:var(--red-bg)" data-stat-filter="overdue">
+          <div class="stat-card-v2-num">${overdue.length}</div>
+          <div class="stat-card-v2-label">Überfällig</div>
+          <div class="stat-card-v2-icon">⚠️</div>
         </div>
         ${todayFilter ? `<button class="btn btn-ghost" data-stat-filter="" style="font-size:var(--text-xs);flex-shrink:0;align-self:center">✕</button>` : ''}
       </div>
@@ -76,8 +70,8 @@ export function renderToday(container) {
         <!-- Calendar Widget (always visible) -->
         ${calToday.length ? `
           <div class="widget">
-            <div class="widget-header">
-              <div class="widget-header-title">📅 Termine <span class="widget-header-count">${calToday.length}</span></div>
+            <div class="widget-header" style="background:linear-gradient(135deg, #3b82f610, #3b82f605)">
+              <div class="widget-header-title"><span style="font-size:16px">📅</span> Termine <span class="widget-header-count">${calToday.length}</span></div>
             </div>
             <div class="widget-body-flush">
               ${calToday.map(e => {
@@ -99,8 +93,8 @@ export function renderToday(container) {
 
         ${(!todayFilter || todayFilter === 'overdue') && highPrio.length ? `
           <div class="widget">
-            <div class="widget-header">
-              <div class="widget-header-title" style="color:var(--red)">🔴 Hohe Priorität <span class="widget-header-count">${highPrio.length}</span></div>
+            <div class="widget-header" style="background:linear-gradient(135deg, #ef444410, #ef444405)">
+              <div class="widget-header-title" style="color:var(--red)"><span style="font-size:16px">🔴</span> Hohe Priorität <span class="widget-header-count">${highPrio.length}</span></div>
             </div>
             <div class="widget-body-flush task-list-widget">
               ${highPrio.slice(0, 5).map(t => taskHTML(t)).join('')}
@@ -110,8 +104,8 @@ export function renderToday(container) {
 
         ${(!todayFilter || todayFilter === 'today') && todayTasks.length ? `
           <div class="widget">
-            <div class="widget-header">
-              <div class="widget-header-title">✅ Heute fällig <span class="widget-header-count">${todayTasks.length}</span></div>
+            <div class="widget-header" style="background:linear-gradient(135deg, #10b98110, #10b98105)">
+              <div class="widget-header-title" style="color:var(--green)"><span style="font-size:16px">✅</span> Heute fällig <span class="widget-header-count">${todayTasks.length}</span></div>
             </div>
             <div class="widget-body-flush task-list-widget">
               ${todayTasks.sort(prioritySorter).map(t => taskHTML(t)).join('')}
@@ -121,8 +115,8 @@ export function renderToday(container) {
 
         ${todayFilter === 'overdue' && overdue.length ? `
           <div class="widget">
-            <div class="widget-header">
-              <div class="widget-header-title" style="color:var(--red)">⚠ Überfällig <span class="widget-header-count">${overdue.length}</span></div>
+            <div class="widget-header" style="background:linear-gradient(135deg, #ef444410, #ef444405)">
+              <div class="widget-header-title" style="color:var(--red)"><span style="font-size:16px">⚠️</span> Überfällig <span class="widget-header-count">${overdue.length}</span></div>
             </div>
             <div class="widget-body-flush task-list-widget">
               ${overdue.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).map(t => taskHTML(t)).join('')}
@@ -132,8 +126,8 @@ export function renderToday(container) {
 
         ${!todayFilter || todayFilter === 'week' ? `
           <div class="widget">
-            <div class="widget-header">
-              <div class="widget-header-title">📆 Nächste 7 Tage <span class="widget-header-count">${weekTasks.length}</span></div>
+            <div class="widget-header" style="background:linear-gradient(135deg, #f59e0b10, #f59e0b05)">
+              <div class="widget-header-title"><span style="font-size:16px">📆</span> Nächste 7 Tage <span class="widget-header-count">${weekTasks.length}</span></div>
               <button class="btn btn-ghost" style="font-size:var(--text-xs)" data-goto="tasks">Alle →</button>
             </div>
             <div class="widget-body-flush task-list-widget">
@@ -146,8 +140,8 @@ export function renderToday(container) {
 
         ${!todayFilter && pinnedNotes.length ? `
           <div class="widget">
-            <div class="widget-header">
-              <div class="widget-header-title">📌 Angepinnt</div>
+            <div class="widget-header" style="background:linear-gradient(135deg, #8b5cf610, #8b5cf605)">
+              <div class="widget-header-title"><span style="font-size:16px">📌</span> Angepinnt</div>
               <button class="btn btn-ghost" style="font-size:var(--text-xs)" data-goto="notes">Alle →</button>
             </div>
             <div class="widget-body" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
