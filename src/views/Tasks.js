@@ -118,6 +118,9 @@ export function renderTasks(container) {
           ? renderGroupedTasks(filtered)
           : '<div class="widget-empty" style="grid-column:1/-1"><div style="font-size:28px;margin-bottom:8px">📋</div>Keine Tasks<br><span style="font-size:var(--text-xs);color:var(--text-tertiary)">Drücke <span class="kbd">N</span> zum Erstellen</span></div>'}
       </div>
+
+      <!-- Mobile FAB -->
+      <button id="new-task-fab" style="position:fixed;bottom:88px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent-gradient);color:#fff;border:none;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(99,102,241,0.3);cursor:pointer;z-index:50">+</button>
     </div>
 
     ${taskModalHTML()}
@@ -173,6 +176,11 @@ function renderGroupedTasks(tasks) {
 }
 
 function bindTaskViewEvents(container) {
+  // Mobile FAB -> open task modal
+  container.querySelector('#new-task-fab')?.addEventListener('click', () => {
+    openTaskModal(null, container);
+  });
+
   // Quick add with smart parsing
   const quickInput = container.querySelector('#task-quick-input');
   quickInput?.addEventListener('keydown', async (e) => {

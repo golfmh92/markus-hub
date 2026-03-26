@@ -62,6 +62,9 @@ export function renderNotes(container) {
           ? filtered.map(n => noteCardHTML(n)).join('')
           : '<div class="widget-empty" style="grid-column:1/-1"><div style="font-size:28px;margin-bottom:8px">📝</div>Noch keine Notizen</div>'}
       </div>
+
+      <!-- Mobile FAB -->
+      <button id="new-note-btn" style="position:fixed;bottom:88px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent-gradient);color:#fff;border:none;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(99,102,241,0.3);cursor:pointer;z-index:50">+</button>
     </div>
   `;
 
@@ -113,6 +116,13 @@ function bindNotesEvents(container) {
     }
   });
 
+  // New note button (mobile FAB)
+  container.querySelector('#new-note-btn')?.addEventListener('click', async () => {
+    await quickAddNote('Neue Notiz');
+    const newest = state.notes[0];
+    if (newest) navigate(`notes/${newest.id}`);
+  });
+
   // Search
   container.querySelector('#note-search')?.addEventListener('input', () => {
     renderNotes(container);
@@ -126,10 +136,11 @@ function bindNotesEvents(container) {
     });
   });
 
-  // Click note -> open detail
-  container.querySelectorAll('[data-note-id]').forEach(el => {
-    el.addEventListener('click', () => {
-      navigate(`notes/${el.dataset.noteId}`);
-    });
+  // Click note -> open detail (event delegation on container)
+  container.addEventListener('click', (e) => {
+    const noteEl = e.target.closest('[data-note-id]');
+    if (noteEl) {
+      navigate(`notes/${noteEl.dataset.noteId}`);
+    }
   });
 }
