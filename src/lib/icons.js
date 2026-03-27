@@ -2,6 +2,21 @@
 const icon = (d, size = 18) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 
+// Loom logo (thread arcs)
+export const loomLogo = (size = 32) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 192 192" fill="none">
+    <defs><linearGradient id="loom-g" x1="0" y1="0" x2="192" y2="192" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs>
+    <rect width="192" height="192" rx="42" fill="url(#loom-g)"/>
+    <path d="M48 140 C48 80, 80 52, 130 52" stroke="white" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <path d="M62 148 C62 84, 90 42, 144 42" stroke="rgba(255,255,255,0.5)" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <path d="M36 132 C36 78, 72 62, 118 62" stroke="rgba(255,255,255,0.25)" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <circle cx="130" cy="52" r="8" fill="white"/><circle cx="144" cy="42" r="6" fill="rgba(255,255,255,0.5)"/><circle cx="118" cy="62" r="5" fill="rgba(255,255,255,0.25)"/>
+  </svg>`;
+
+// Loom logo text (icon + "Loom" text)
+export const loomLogoText = (iconSize = 28) =>
+  `<span style="display:inline-flex;align-items:center;gap:8px">${loomLogo(iconSize)}<span style="font-size:20px;font-weight:800;background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.03em">Loom</span></span>`;
+
 export const icons = {
   today: icon('<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>'),
   tasks: icon('<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>'),

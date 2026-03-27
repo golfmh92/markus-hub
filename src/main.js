@@ -28,7 +28,7 @@ import { initPush } from './services/push.js';
 import { renderDock } from './components/Dock.js';
 import { initCommandBar } from './components/CommandBar.js';
 import { initModalClose } from './components/Modal.js';
-import { icons } from './lib/icons.js';
+import { icons, loomLogo, loomLogoText } from './lib/icons.js';
 
 // Views
 import { renderToday } from './views/Today.js';
@@ -57,6 +57,7 @@ function buildAuthScreen() {
   app.innerHTML = `
     <div class="auth-screen" id="auth-screen">
       <div class="auth-box">
+        <div style="text-align:center;margin-bottom:8px">${loomLogo(56)}</div>
         <div class="auth-logo">Loom</div>
         <div class="auth-sub">Dein persönlicher Workspace</div>
         <div id="auth-error" class="auth-error"></div>

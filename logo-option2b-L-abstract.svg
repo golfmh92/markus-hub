@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="192" height="192" rx="42" fill="url(#bg2)"/>
+  <!-- Abstract L made of 3 overlapping bars -->
+  <rect x="52" y="38" width="16" height="100" rx="8" fill="white"/>
+  <rect x="52" y="122" width="88" height="16" rx="8" fill="white"/>
+  <!-- Woven cross threads -->
+  <rect x="76" y="54" width="52" height="10" rx="5" fill="rgba(255,255,255,0.2)" transform="rotate(-15 76 54)"/>
+  <rect x="84" y="78" width="44" height="10" rx="5" fill="rgba(255,255,255,0.15)" transform="rotate(-15 84 78)"/>
+  <rect x="90" y="100" width="36" height="10" rx="5" fill="rgba(255,255,255,0.1)" transform="rotate(-15 90 100)"/>
+</svg>
